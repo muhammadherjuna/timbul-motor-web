@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Motor {
+  id                String   @id @default(uuid())
+  code              String   @unique
+  brand             String
+  name              String
+  type              String
+  year              Int
+  km                Int
+  price             Int
+  dp_min            Int
+  status            String   // e.g. "Baru Masuk", "Tersedia", "Sedang Dipesan", "Terjual"
+  image             String
+  images            String[] // Array of strings for PostgreSQL
+  videoUrl          String?
+
+  // Specs
+  cc                Int
+  transmission      String
+  color             String
+  tax_status        String
+  tax_expiry        String
+  description       String
+  bpkb_ready        Boolean  @default(true)
+  stnk_ready        Boolean  @default(true)
+  body_condition    String?
+  engine_condition  String?
+
+  // Inspection
+  engine_sound      String?
+  cvt_chain         String?
+  electrical_lights String?
+  brakes            String?
+  suspension        String?
+  notes             String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
