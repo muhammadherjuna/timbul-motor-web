@@ -85,41 +85,41 @@ export default async function Home() {
           </div>
         </div>
       </section>
-      
-      {/* FOOTER */}
-      <footer className="bg-[var(--foreground)] text-white py-12 border-t-4 border-[var(--accent)]">
-        <div className="container mx-auto px-4 grid md:grid-cols-3 gap-10">
-          <div>
-            <h3 className="text-2xl font-black text-[var(--accent)] mb-4">TIMBUL MOTOR</h3>
-            <p className="text-gray-400 mb-6 max-w-sm">
-              Dealer motor bekas terpercaya di Kebumen. Stok nyata, kondisi jelas, siap jalan.
-            </p>
+      {/* TESTIMONIALS */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl font-black text-[var(--foreground)] mb-4">Apa Kata Pelanggan Kami</h2>
+            <p className="text-[var(--muted-foreground)]">Lebih dari 1000+ pelanggan telah mempercayakan pembelian motor mereka kepada Timbul Motor.</p>
           </div>
-          <div>
-            <h4 className="font-bold text-lg mb-4">Kontak & Lokasi</h4>
-            <div className="space-y-3 text-gray-400">
-              <p className="flex items-start gap-2">
-                <MapPin size={20} className="shrink-0 text-[var(--accent)]"/>
-                <span>Jl. Raya Jemur, Karangwungu, Karangpoh, Kec. Pejagoan, Kabupaten Kebumen, Jawa Tengah 54361</span>
-              </p>
-              <p className="flex items-center gap-2">
-                <Phone size={20} className="text-[var(--accent)]"/>
-                <span>0812-3456-7890 (WhatsApp)</span>
-              </p>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-bold text-lg mb-4">Jam Operasional</h4>
-            <div className="space-y-2 text-gray-400">
-              <p className="flex justify-between"><span>Senin - Sabtu:</span> <span>08.00 - 17.00 WIB</span></p>
-              <p className="flex justify-between"><span>Minggu:</span> <span>Libur</span></p>
-            </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { name: "Budi Santoso", role: "Driver Ojol", text: "Beli Vario di sini mesinnya halus banget. Surat-surat lengkap dan langsung dibantu proses balik nama. Mantap Timbul Motor!", rating: 5, date: "2 Hari yang lalu" },
+              { name: "Siti Rahma", role: "Ibu Rumah Tangga", text: "Pelayanan sangat ramah, motor bisa ditest drive dulu. Harganya juga lebih miring dibanding tempat lain di Kebumen.", rating: 5, date: "1 Minggu yang lalu" },
+              { name: "Andi Saputra", role: "Mahasiswa", text: "Alhamdulillah dapet Aerox mulus kayak baru. Kondisinya jujur, dikasih tau kalau ada lecet dikit, nggak ditutup-tutupin.", rating: 5, date: "1 Bulan yang lalu" },
+            ].map((review, i) => (
+              <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-[var(--border)] hover:shadow-xl transition-all">
+                <div className="flex text-yellow-400 mb-4">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <svg key={star} className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                  ))}
+                </div>
+                <p className="text-[var(--foreground)] italic mb-6 leading-relaxed">"{review.text}"</p>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-full flex items-center justify-center font-bold text-[var(--primary)] text-xl">
+                    {review.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-[var(--foreground)]">{review.name}</h4>
+                    <p className="text-xs text-[var(--muted-foreground)]">{review.role} • {review.date}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="container mx-auto px-4 mt-12 pt-8 border-t border-white/10 text-center text-sm text-gray-500">
-          &copy; {new Date().getFullYear()} Timbul Motor Kebumen. All rights reserved.
-        </div>
-      </footer>
+      </section>
     </main>
   );
 }

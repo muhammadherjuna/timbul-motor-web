@@ -18,8 +18,6 @@ export default function Header() {
     { name: "Jual Motor", href: "/jual-motor" },
     { name: "Tukar Tambah", href: "/tukar-tambah" },
     { name: "Tentang Kami", href: "/tentang-kami" },
-    { name: "Ulasan", href: "/ulasan" },
-    { name: "Kontak", href: "/kontak" },
   ];
 
   return (
