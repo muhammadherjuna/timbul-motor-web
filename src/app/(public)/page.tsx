@@ -3,6 +3,7 @@ import Link from "next/link";
 import prisma from "@/lib/db";
 import { Search, MapPin, CheckCircle, ShieldCheck, Phone, ChevronRight } from "lucide-react";
 import HomeStockBrowser from "@/components/HomeStockBrowser";
+import RandomReviews from "@/components/public/RandomReviews";
 
 export const dynamic = "force-dynamic";
 
@@ -93,31 +94,7 @@ export default async function Home() {
             <p className="text-[var(--muted-foreground)]">Lebih dari 1000+ pelanggan telah mempercayakan pembelian motor mereka kepada Timbul Motor.</p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { name: "Budi Santoso", role: "Driver Ojol", text: "Beli Vario di sini mesinnya halus banget. Surat-surat lengkap dan langsung dibantu proses balik nama. Mantap Timbul Motor!", rating: 5, date: "2 Hari yang lalu" },
-              { name: "Siti Rahma", role: "Ibu Rumah Tangga", text: "Pelayanan sangat ramah, motor bisa ditest drive dulu. Harganya juga lebih miring dibanding tempat lain di Kebumen.", rating: 5, date: "1 Minggu yang lalu" },
-              { name: "Andi Saputra", role: "Mahasiswa", text: "Alhamdulillah dapet Aerox mulus kayak baru. Kondisinya jujur, dikasih tau kalau ada lecet dikit, nggak ditutup-tutupin.", rating: 5, date: "1 Bulan yang lalu" },
-            ].map((review, i) => (
-              <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-[var(--border)] hover:shadow-xl transition-all">
-                <div className="flex text-yellow-400 mb-4">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <svg key={star} className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                  ))}
-                </div>
-                <p className="text-[var(--foreground)] italic mb-6 leading-relaxed">"{review.text}"</p>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-full flex items-center justify-center font-bold text-[var(--primary)] text-xl">
-                    {review.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-[var(--foreground)]">{review.name}</h4>
-                    <p className="text-xs text-[var(--muted-foreground)]">{review.role} • {review.date}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <RandomReviews />
         </div>
       </section>
     </main>

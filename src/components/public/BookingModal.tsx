@@ -22,7 +22,7 @@ export default function BookingModal({ motorName, motorCode }: BookingModalProps
     e.preventDefault();
     const message = `Halo Timbul Motor, saya ${formData.name} ingin *Booking Test Ride* untuk:\n\nMotor: *${motorName}*\nKode: *${motorCode}*\n\n*Rencana Kedatangan:*\nTanggal: ${formData.date}\nJam: ${formData.time}\n\nMohon konfirmasinya ya. Terima kasih.`;
     
-    const waUrl = `https://wa.me/6281234567890?text=${encodeURIComponent(message)}`;
+    const waUrl = `https://wa.me/6282326921142?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
     setIsOpen(false);
   };

@@ -49,7 +49,7 @@ export default function SettingsPage() {
                 <label className="text-sm font-medium">Nomor WhatsApp Admin</label>
                 <div className="relative">
                   <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="text" defaultValue="6281234567890" className="w-full pl-9 pr-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                  <input type="text" defaultValue="6282326921142" className="w-full pl-9 pr-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Gunakan format 628xxx tanpa tanda plus atau spasi.</p>
               </div>

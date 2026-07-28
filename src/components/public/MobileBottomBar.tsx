@@ -8,7 +8,7 @@ export default function MobileBottomBar() {
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[var(--border)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around h-16">
         <a 
-          href="tel:081234567890" 
+          href="tel:082326921142" 
           className="flex flex-col items-center justify-center w-full h-full text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors"
         >
           <Phone size={20} className="mb-1" />
@@ -16,7 +16,7 @@ export default function MobileBottomBar() {
         </a>
         
         <a 
-          href="https://wa.me/6281234567890" 
+          href="https://wa.me/6282326921142" 
           target="_blank"
           rel="noreferrer"
           className="flex flex-col items-center justify-center w-full h-full text-[#25D366] hover:text-[#20b858] transition-colors relative"

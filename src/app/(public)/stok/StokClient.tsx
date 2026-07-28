@@ -249,7 +249,7 @@ function StokContent({ initialMotors }: { initialMotors: any[] }) {
                           Detail
                         </Link>
                         <a 
-                          href={`https://wa.me/6281234567890?text=Halo%20Timbul%20Motor,%20saya%20tertarik%20dengan%20${encodeURIComponent(motor.name)}%20kode%20${motor.code}.%20Apakah%20unit%20masih%20tersedia?`}
+                          href={`https://wa.me/6282326921142?text=Halo%20Timbul%20Motor,%20saya%20tertarik%20dengan%20${encodeURIComponent(motor.name)}%20kode%20${motor.code}.%20Apakah%20unit%20masih%20tersedia?`}
                           target="_blank"
                           rel="noreferrer"
                           className="bg-[#25D366] text-white px-3 py-2 rounded-lg font-bold text-sm hover:bg-[#20b858] transition-colors flex items-center justify-center"

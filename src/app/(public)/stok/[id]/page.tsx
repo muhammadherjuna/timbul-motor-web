@@ -88,7 +88,7 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
             </div>
 
             {/* QUICK SPECS */}
-            <div className="grid grid-cols-2 gap-y-4 gap-x-8 py-6 border-y border-[var(--border)] mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 py-6 border-y border-[var(--border)] mb-8">
               <div>
                 <div className="text-xs text-[var(--muted-foreground)] mb-1">Kapasitas Mesin</div>
                 <div className="font-semibold text-[var(--foreground)]">{motor.cc} cc</div>
@@ -98,16 +98,32 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
                 <div className="font-semibold text-[var(--foreground)]">{motor.transmission}</div>
               </div>
               <div>
+                <div className="text-xs text-[var(--muted-foreground)] mb-1">Warna</div>
+                <div className="font-semibold text-[var(--foreground)]">{motor.color}</div>
+              </div>
+              <div>
                 <div className="text-xs text-[var(--muted-foreground)] mb-1">Pajak</div>
                 <div className="font-semibold text-[var(--foreground)]">{motor.tax_status} {motor.tax_expiry ? `(${motor.tax_expiry})` : ""}</div>
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <div className="text-xs text-[var(--muted-foreground)] mb-1">Dokumen</div>
                 <div className="font-semibold text-[var(--foreground)]">
                   {motor.bpkb_ready ? 'BPKB' : ''} {motor.stnk_ready ? '& STNK' : ''}
                 </div>
               </div>
             </div>
+
+            {/* DESKRIPSI KENDARAAN (CATATAN PENJUAL) */}
+            {motor.description && (
+              <div className="mb-8">
+                <h3 className="font-bold text-[var(--foreground)] mb-3 text-lg">Catatan Penjual</h3>
+                <div className="bg-white p-5 rounded-xl border border-[var(--border)] shadow-sm">
+                  <p className="text-[var(--foreground)] text-sm leading-relaxed whitespace-pre-wrap">
+                    {motor.description}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* DIGITAL INSPECTION REPORT */}
             <div className="mb-8 bg-white border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
@@ -121,8 +137,8 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
               </div>
               
               {(motor.engine_sound || motor.cvt_chain) ? (
-                <div className="p-5">
-                  <div className="grid grid-cols-2 gap-y-4 gap-x-4 mb-4">
+                <div className="p-5 border-b border-[var(--border)]">
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-4">
                     {[
                       { label: 'Suara & Performa Mesin', status: motor.engine_sound },
                       { label: 'CVT / Rantai', status: motor.cvt_chain },
@@ -144,29 +160,30 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
                       </div>
                     ))}
                   </div>
-                  
-                  {motor.notes && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
-                      <div className="text-xs font-bold text-yellow-800 mb-1">Catatan Teknisi / Minus:</div>
-                      <p className="text-sm text-yellow-700 leading-relaxed">
-                        {motor.notes}
-                      </p>
-                    </div>
-                  )}
                 </div>
               ) : (
-                <div className="p-5 space-y-4">
+                <div className="p-5 space-y-4 border-b border-[var(--border)]">
                   <div className="grid grid-cols-3 border-b border-[var(--muted)] pb-3">
                     <div className="text-sm text-[var(--muted-foreground)]">Kondisi Mesin</div>
-                    <div className="col-span-2 text-sm font-semibold">{motor.engine_condition}</div>
+                    <div className="col-span-2 text-sm font-semibold">{motor.engine_condition || 'Tidak ada info'}</div>
                   </div>
-                  <div className="grid grid-cols-3 border-b border-[var(--muted)] pb-3">
+                  <div className="grid grid-cols-3 pb-1">
                     <div className="text-sm text-[var(--muted-foreground)]">Kondisi Bodi</div>
-                    <div className="col-span-2 text-sm font-semibold">{motor.body_condition}</div>
+                    <div className="col-span-2 text-sm font-semibold">{motor.body_condition || 'Tidak ada info'}</div>
                   </div>
-                  <div className="grid grid-cols-3">
-                    <div className="text-sm text-[var(--danger)] font-medium">Catatan / Minus</div>
-                    <div className="col-span-2 text-sm font-semibold">{motor.description || 'Tidak ada catatan'}</div>
+                </div>
+              )}
+
+              {motor.notes && (
+                <div className="p-5 bg-yellow-50/50">
+                  <div className="bg-white border border-yellow-200 rounded-lg p-4 shadow-sm">
+                    <div className="text-xs font-bold text-yellow-800 mb-2 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span> 
+                      Catatan Inspeksi / Minus:
+                    </div>
+                    <p className="text-sm text-yellow-900 leading-relaxed whitespace-pre-wrap">
+                      {motor.notes}
+                    </p>
                   </div>
                 </div>
               )}
@@ -183,7 +200,7 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
             {/* DESKTOP ACTION BUTTONS */}
             <div className="hidden md:flex gap-4 mt-2">
               <a 
-                href={`https://wa.me/6281234567890?text=${waMessage}`}
+                href={`https://wa.me/6282326921142?text=${waMessage}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 bg-[#25D366] text-white py-3 rounded-xl font-bold hover:bg-[#20b858] transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/20"
@@ -191,7 +208,7 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
                 <Phone size={20} /> Tanya via WhatsApp
               </a>
               <a 
-                href={`https://maps.google.com/?q=Timbul+Motor+Kebumen`}
+                href="https://maps.app.goo.gl/9HkN9obKBcdQxSEx6" 
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 bg-white border-2 border-[var(--primary)] text-[var(--primary)] py-3 rounded-xl font-bold hover:bg-[var(--primary)]/5 transition-colors flex items-center justify-center gap-2"
@@ -208,7 +225,7 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-[var(--border)] shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.1)] z-40 md:hidden">
         <div className="flex gap-3">
           <a 
-            href={`https://wa.me/6281234567890?text=${waMessage}`}
+            href={`https://wa.me/6282326921142?text=${waMessage}`}
             target="_blank"
             rel="noreferrer"
             className="flex-1 bg-[#25D366] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#20b858] transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/30"

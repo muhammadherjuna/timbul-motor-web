@@ -126,9 +126,13 @@ export async function updateMotor(id: string, formData: FormData) {
   const uploadedUrls: string[] = [];
   for (let i = 0; i < 4; i++) {
     const file = formData.get(`image_${i}`) as File | null;
+    const existingUrl = formData.get(`existing_image_${i}`) as string;
+    
     if (file && file.size > 0 && file.name !== "undefined") {
       const url = await uploadImageToSupabase(file);
       if (url) uploadedUrls.push(url);
+    } else if (existingUrl) {
+      uploadedUrls.push(existingUrl);
     }
   }
 

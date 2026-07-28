@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Phone, Mail, Instagram, Facebook } from "lucide-react";
+import { MapPin, Phone, Mail } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -13,14 +13,6 @@ export default function Footer() {
             <p className="text-sm leading-relaxed mb-6">
               Pusat jual beli motor bekas berkualitas di Jawa Tengah. Kami mengutamakan kejujuran kondisi, surat yang terjamin, dan harga yang bersahabat untuk semua pelanggan.
             </p>
-            <div className="flex gap-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[var(--primary)] hover:text-white transition-colors">
-                <Instagram size={20} />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[var(--primary)] hover:text-white transition-colors">
-                <Facebook size={20} />
-              </a>
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -55,8 +47,8 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="text-[var(--primary)] shrink-0" size={20} />
-                <a href="https://wa.me/6281234567890" target="_blank" rel="noreferrer" className="text-sm hover:text-white transition-colors">
-                  +62 812-3456-7890
+                <a href="https://wa.me/6282326921142" target="_blank" rel="noreferrer" className="text-sm hover:text-white transition-colors">
+                  +62 823-2692-1142
                 </a>
               </li>
               <li className="flex items-center gap-3">

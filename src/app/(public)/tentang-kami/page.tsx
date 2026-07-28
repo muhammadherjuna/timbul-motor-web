@@ -112,7 +112,7 @@ export default function TentangKamiPage() {
           </p>
           <div className="inline-flex flex-col sm:flex-row gap-4 justify-center w-full">
             <a 
-              href="https://maps.google.com/?q=Timbul+Motor+Kebumen" 
+              href="https://maps.app.goo.gl/9HkN9obKBcdQxSEx6" 
               target="_blank" 
               rel="noreferrer"
               className="bg-white text-[var(--primary)] px-8 py-4 rounded-xl font-bold hover:bg-gray-100 transition-colors shadow-lg"
@@ -120,7 +120,7 @@ export default function TentangKamiPage() {
               Buka di Google Maps
             </a>
             <a 
-              href="https://wa.me/6281234567890" 
+              href="https://wa.me/6282326921142" 
               target="_blank" 
               rel="noreferrer"
               className="bg-[var(--accent)] text-[var(--foreground)] px-8 py-4 rounded-xl font-bold hover:bg-[var(--accent)]/90 transition-colors shadow-lg"

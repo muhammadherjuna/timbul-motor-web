@@ -21,7 +21,12 @@ function SubmitButton() {
 }
 
 export default function EditMotorClient({ motor }: { motor: any }) {
-  const [previews, setPreviews] = useState<string[]>([motor.image, "", "", ""]);
+  const [previews, setPreviews] = useState<string[]>([
+    motor.image || "", 
+    motor.images?.[0] || "", 
+    motor.images?.[1] || "", 
+    motor.images?.[2] || ""
+  ]);
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -235,6 +240,7 @@ export default function EditMotorClient({ motor }: { motor: any }) {
                     }}
                     onChange={(e) => handleImageUpload(e, index)}
                   />
+                  <input type="hidden" name={`existing_image_${index}`} value={preview || ""} />
                 </div>
                 <div className="text-center">
                   <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded-full">{labels[index]}</span>
@@ -275,6 +281,10 @@ export default function EditMotorClient({ motor }: { motor: any }) {
               <input type="number" name="year" defaultValue={motor.year} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
             </div>
             <div className="space-y-1">
+              <label className="text-sm font-medium">Warna Motor <span className="text-red-500">*</span></label>
+              <input type="text" name="color" defaultValue={motor.color} placeholder="Cth: Hitam Doff" required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+            </div>
+            <div className="space-y-1">
               <label className="text-sm font-medium">Kilometer (Odo) <span className="text-red-500">*</span></label>
               <input 
                 type="text" 
@@ -293,6 +303,11 @@ export default function EditMotorClient({ motor }: { motor: any }) {
               <div className="relative">
                 <input type="url" name="videoUrl" defaultValue={motor.videoUrl || ""} className="w-full pl-3 pr-3 py-2 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[var(--primary)] outline-none" />
               </div>
+            </div>
+            <div className="space-y-1 sm:col-span-2 mt-2">
+              <label className="text-sm font-bold text-[var(--foreground)]">Deskripsi Promosi Kendaraan</label>
+              <p className="text-xs text-[var(--muted-foreground)] mb-2">Tuliskan keunggulan motor ini untuk menarik minat pembeli. Teks ini akan muncul di bagian atas halaman detail.</p>
+              <textarea name="description" defaultValue={motor.description} rows={3} placeholder="Contoh: Motor simpanan, KM rendah asli, surat lengkap tangan pertama. Beli sekarang gratis ganti oli!" className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm resize-none"></textarea>
             </div>
           </div>
         </div>
@@ -399,9 +414,10 @@ export default function EditMotorClient({ motor }: { motor: any }) {
               </div>
             ))}
             
-            <div className="space-y-1 sm:col-span-2 mt-2">
-              <label className="text-sm font-medium">Keterangan/Catatan Minus</label>
-              <textarea name="description" defaultValue={motor.description} rows={3} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm resize-none"></textarea>
+            <div className="space-y-1 sm:col-span-2 mt-2 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <label className="text-sm font-bold text-yellow-900">Catatan Kekurangan Fisik / Minus</label>
+              <p className="text-xs text-yellow-700 mb-2">Tuliskan kekurangan motor (jika ada) sebagai bentuk transparansi dealer. Teks ini akan disorot kuning di dalam kotak Hasil Inspeksi pembeli.</p>
+              <textarea name="inspection.notes" defaultValue={motor.notes} rows={2} placeholder="Contoh: Lecet pemakaian di spakbor depan, mika sein kiri ada retak rambut sedikit." className="w-full px-3 py-2 rounded-lg border border-yellow-300 focus:outline-none focus:border-yellow-500 text-sm resize-none bg-white"></textarea>
             </div>
           </div>
         </div>

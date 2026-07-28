@@ -47,7 +47,7 @@ export default function Header() {
         {/* WHATSAPP BUTTON (DESKTOP) & HAMBURGER (MOBILE) */}
         <div className="flex items-center gap-2 sm:gap-4">
           <a 
-            href="https://wa.me/6281234567890" 
+            href="https://wa.me/6282326921142" 
             target="_blank"
             rel="noreferrer"
             className="hidden sm:flex bg-[var(--primary)] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[var(--primary)]/90 transition-colors items-center gap-2"
@@ -82,7 +82,7 @@ export default function Header() {
             ))}
             <div className="pt-4 mt-2 border-t border-[var(--border)]">
               <a 
-                href="https://wa.me/6281234567890" 
+                href="https://wa.me/6282326921142" 
                 target="_blank"
                 rel="noreferrer"
                 onClick={closeMenu}
