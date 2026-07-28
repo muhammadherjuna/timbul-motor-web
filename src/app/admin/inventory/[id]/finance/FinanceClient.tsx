@@ -91,7 +91,28 @@ export default function FinanceClient({ motor }: { motor: any }) {
 
           <div className="bg-[var(--muted)] p-4 rounded-xl border border-[var(--border)] shadow-sm">
             <img src={motor.image} alt={motor.name} className="w-full h-auto aspect-video object-cover rounded-lg mb-3 shadow-sm" />
-            <p className="text-xs text-[var(--muted-foreground)] text-center">Unduh gambar ini jika diperlukan untuk posting.</p>
+            <button 
+              onClick={async () => {
+                try {
+                  const response = await fetch(motor.image);
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${motor.name.replace(/\s+/g, '-').toLowerCase()}-promo.jpg`;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+                } catch (error) {
+                  // Fallback for CORS issues
+                  window.open(motor.image, '_blank');
+                }
+              }}
+              className="w-full py-2 bg-white border border-[var(--border)] rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+            >
+              Unduh Gambar
+            </button>
           </div>
         </div>
 
