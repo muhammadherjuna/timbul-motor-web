@@ -3,6 +3,7 @@
 import { ArrowLeft, Upload, Save, X, Eye } from "lucide-react";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { createMotor } from "@/lib/actions";
 import { useFormStatus } from "react-dom";
@@ -27,6 +28,11 @@ export default function AddMotorPage() {
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   const [showToast, setShowToast] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -37,6 +43,10 @@ export default function AddMotorPage() {
       try {
         const data = JSON.parse(draft);
         Object.entries(data).forEach(([key, value]) => {
+          if (key === 'km') setKm(value as string);
+          if (key === 'price') setPrice(value as string);
+          if (key === 'dp_min') setDp(value as string);
+
           const input = formRef.current?.elements.namedItem(key);
           if (input) {
             if (input instanceof RadioNodeList) {
@@ -158,10 +168,49 @@ export default function AddMotorPage() {
     setter(numericVal ? Number(numericVal).toLocaleString("id-ID") : "");
   };
 
+  const [showImageError, setShowImageError] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (!previews[0]) {
+      e.preventDefault();
+      setShowImageError(true);
+      return;
+    }
+    localStorage.removeItem("addMotorDraft");
+  };
+
   const labels = ["Utama (Depan)", "Samping Kiri", "Samping Kanan", "Speedometer"];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12 relative">
+      {/* Custom Error Modal via Portal */}
+      {showImageError && isMounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-red-50 p-4 flex items-center justify-center">
+              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+              </div>
+            </div>
+            <div className="p-6 text-center space-y-3">
+              <h3 className="text-lg font-bold text-[var(--foreground)]">Foto Utama Kosong!</h3>
+              <p className="text-sm text-[var(--muted-foreground)]">
+                Anda diwajibkan untuk mengunggah setidaknya 1 buah <strong>Foto Utama (Utama Depan)</strong> sebelum sistem dapat memproses penambahan stok motor ini.
+              </p>
+            </div>
+            <div className="p-4 bg-[var(--muted)]/50 border-t border-[var(--border)]">
+              <button 
+                onClick={() => setShowImageError(false)}
+                className="w-full py-2.5 bg-[var(--primary)] text-white font-semibold rounded-lg hover:bg-[var(--primary)]/90 transition-colors"
+              >
+                Mengerti
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       <div className="flex items-center gap-4">
         <Link 
           href="/admin/inventory" 
@@ -178,7 +227,7 @@ export default function AddMotorPage() {
       <form 
         ref={formRef}
         onChange={handleFormChange}
-        onSubmit={() => localStorage.removeItem("addMotorDraft")}
+        onSubmit={handleSubmit}
         className="space-y-6" 
         action={createMotor}
       >

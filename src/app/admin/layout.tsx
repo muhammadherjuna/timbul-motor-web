@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen bg-[var(--muted)] overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-[var(--muted)] overflow-hidden">
       {/* Sidebar for Desktop */}
       <AdminSidebar />
 
