@@ -1,13 +1,23 @@
-import { mockMotors } from "@/data/mockData";
+import prisma from "@/lib/db";
 import { Package, CheckCircle, Clock, PlusCircle } from "lucide-react";
 import Link from "next/link";
 
-export default function AdminDashboard() {
-  const totalMotors = mockMotors.length;
-  const availableMotors = mockMotors.filter(m => m.status === "Tersedia" || m.status === "Baru Masuk").length;
-  const soldMotors = mockMotors.filter(m => m.status === "Terjual").length;
-  const bookedMotors = mockMotors.filter(m => m.status === "Sedang Dipesan").length;
-  const taxAlerts = mockMotors.filter(m => m.condition.tax.toLowerCase().includes("mati") || m.condition.tax.toLowerCase().includes("habis"));
+export default async function AdminDashboard() {
+  const motors = await prisma.motor.findMany({
+    orderBy: { createdAt: 'desc' }
+  });
+
+  const totalMotors = motors.length;
+  const availableMotors = motors.filter(m => m.status === "Tersedia" || m.status === "Baru Masuk").length;
+  const soldMotors = motors.filter(m => m.status === "Terjual").length;
+  const bookedMotors = motors.filter(m => m.status === "Sedang Dipesan").length;
+  
+  // Deteksi pajak mati / mau habis
+  const taxAlerts = motors.filter(m => {
+    if (!m.tax_status) return false;
+    const lower = m.tax_status.toLowerCase();
+    return lower.includes("mati") || lower.includes("habis");
+  });
 
   const statCards = [
     { title: "Total Stok", value: totalMotors, icon: Package, color: "text-blue-600", bg: "bg-blue-100" },
@@ -60,7 +70,7 @@ export default function AdminDashboard() {
               <div key={motor.id} className="bg-white border border-red-100 p-3 rounded-lg flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded bg-gray-200 overflow-hidden shrink-0">
-                    <img src={motor.image} alt={motor.name} className="w-full h-full object-cover" />
+                    <img src={motor.image || ''} alt={motor.name} className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <Link href={`/admin/inventory/${motor.id}/edit`} className="font-semibold text-gray-800 hover:text-[var(--primary)] hover:underline">
@@ -71,7 +81,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="text-right">
                   <span className="inline-block px-3 py-1 bg-red-100 text-red-700 font-bold text-xs rounded-full">
-                    {motor.condition.tax}
+                    {motor.tax_status}
                   </span>
                 </div>
               </div>
@@ -95,13 +105,13 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-[var(--border)]">
-              {mockMotors.slice(0, 5).map((motor) => (
+              {motors.slice(0, 5).map((motor) => (
                 <tr key={motor.id} className="hover:bg-[var(--muted)]/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-[var(--foreground)]">{motor.code}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded bg-gray-200 overflow-hidden shrink-0">
-                        <img src={motor.image} alt={motor.name} className="w-full h-full object-cover" />
+                        <img src={motor.image || ''} alt={motor.name} className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <p className="font-semibold text-[var(--foreground)]">{motor.name}</p>

@@ -95,7 +95,12 @@ export default function InventoryClient({ initialMotors }: { initialMotors: any[
                       <p className="text-xs text-[var(--muted-foreground)]">DP Min: Rp {motor.dp_min.toLocaleString("id-ID")}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-xs font-medium px-2 py-1 rounded border border-[var(--border)] bg-[var(--muted)]">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium inline-block border
+                        ${motor.status === "Tersedia" ? "bg-green-100 text-green-700 border-green-200" : ""}
+                        ${motor.status === "Baru Masuk" ? "bg-blue-100 text-blue-700 border-blue-200" : ""}
+                        ${motor.status === "Sedang Dipesan" ? "bg-yellow-100 text-yellow-700 border-yellow-200" : ""}
+                        ${motor.status === "Terjual" ? "bg-gray-100 text-gray-700 border-gray-200" : ""}
+                      `}>
                         {motor.status}
                       </span>
                     </td>
