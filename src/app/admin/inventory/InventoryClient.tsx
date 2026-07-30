@@ -35,7 +35,7 @@ export default function InventoryClient({ initialMotors, userRole = "ADMIN" }: {
             {userRole === "MECHANIC" ? "Pilih motor yang ingin Anda periksa atau verifikasi." : "Kelola semua data motor yang ada di dealer."}
           </p>
         </div>
-        {userRole !== "MECHANIC" && (
+        {userRole === "ADMIN" && (
           <Link 
             href="/admin/inventory/add" 
             className="flex items-center gap-2 bg-[var(--primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--primary)]/90 transition-colors"

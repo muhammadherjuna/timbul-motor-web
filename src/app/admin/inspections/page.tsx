@@ -2,13 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { getPendingInspectionSessions, approveInspectionSession, rejectInspectionSession, reopenInspectionSession } from "@/lib/inspection-actions";
-import { Check, X, RotateCcw, AlertCircle, Search, Eye } from "lucide-react";
+import { Check, X, RotateCcw, AlertCircle, Search, Eye, MessageSquareText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function InspectionsDashboard() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState<{ id: string; type: 'APPROVE' | 'REJECT' | 'REOPEN', motorName: string } | null>(null);
+  const [modalNote, setModalNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -27,21 +34,35 @@ export default function InspectionsDashboard() {
     }
   };
 
-  const handleAction = async (id: string, action: 'APPROVE' | 'REJECT' | 'REOPEN') => {
-    const note = prompt("Masukkan catatan (opsional):");
-    if (note === null) return; // Cancelled
+  const openModal = (id: string, type: 'APPROVE' | 'REJECT' | 'REOPEN', motorName: string) => {
+    setModalAction({ id, type, motorName });
+    setModalNote("");
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalAction(null);
+    setModalNote("");
+  };
+
+  const confirmAction = async () => {
+    if (!modalAction) return;
     
-    setLoading(true);
+    setIsSubmitting(true);
     try {
-      if (action === 'APPROVE') await approveInspectionSession(id, "Supervisor", note);
-      if (action === 'REJECT') await rejectInspectionSession(id, "Supervisor", note);
-      if (action === 'REOPEN') await reopenInspectionSession(id, "Supervisor", note);
+      if (modalAction.type === 'APPROVE') await approveInspectionSession(modalAction.id, "Supervisor", modalNote);
+      if (modalAction.type === 'REJECT') await rejectInspectionSession(modalAction.id, "Supervisor", modalNote);
+      if (modalAction.type === 'REOPEN') await reopenInspectionSession(modalAction.id, "Supervisor", modalNote);
+      
       await loadSessions();
+      closeModal();
       router.refresh();
     } catch (e) {
       console.error(e);
       alert("Gagal melakukan aksi.");
-      setLoading(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -94,22 +115,83 @@ export default function InspectionsDashboard() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                <Link href={`/admin/inventory/${sess.motorId}/edit?tab=4`} className="p-2 border border-[var(--border)] text-[var(--foreground)] rounded-lg hover:bg-gray-50 flex items-center gap-2" title="Lihat Detail">
-                  <Eye size={18} /> <span className="hidden lg:inline">Detail Form</span>
+              <div className="flex flex-wrap items-center gap-2 border-t sm:border-t-0 sm:border-l border-[var(--border)] pt-4 sm:pt-0 sm:pl-6">
+                <Link href={`/admin/inventory/${sess.motorId}/edit?tab=4`} className="flex-1 min-w-[120px] py-2.5 px-4 border border-[var(--border)] text-[var(--foreground)] font-medium rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors" title="Lihat Detail">
+                  <Eye size={18} /> <span>Detail Form</span>
                 </Link>
-                <button onClick={() => handleAction(sess.id, 'APPROVE')} className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2" title="Approve">
-                  <Check size={18} /> <span className="hidden lg:inline">Setujui</span>
+                <button onClick={() => openModal(sess.id, 'REOPEN', sess.motor?.name)} className="flex-1 min-w-[120px] py-2.5 px-4 border-2 border-orange-200 text-orange-700 bg-orange-50 font-medium rounded-lg hover:bg-orange-100 flex items-center justify-center gap-2 transition-colors" title="Kembalikan (Reopen)">
+                  <RotateCcw size={18} /> <span>Perbaiki</span>
                 </button>
-                <button onClick={() => handleAction(sess.id, 'REOPEN')} className="p-2 border border-[var(--border)] text-orange-600 rounded-lg hover:bg-orange-50 flex items-center gap-2" title="Kembalikan (Reopen)">
-                  <RotateCcw size={18} /> <span className="hidden lg:inline">Perbaiki</span>
+                <button onClick={() => openModal(sess.id, 'REJECT', sess.motor?.name)} className="flex-1 min-w-[120px] py-2.5 px-4 border-2 border-red-200 text-red-700 bg-red-50 font-medium rounded-lg hover:bg-red-100 flex items-center justify-center gap-2 transition-colors" title="Tolak">
+                  <X size={18} /> <span>Tolak</span>
                 </button>
-                <button onClick={() => handleAction(sess.id, 'REJECT')} className="p-2 border border-[var(--border)] text-red-600 rounded-lg hover:bg-red-50 flex items-center gap-2" title="Tolak">
-                  <X size={18} /> <span className="hidden lg:inline">Tolak</span>
+                <button onClick={() => openModal(sess.id, 'APPROVE', sess.motor?.name)} className="flex-[2] min-w-[140px] py-2.5 px-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 shadow-sm hover:shadow flex items-center justify-center gap-2 transition-all" title="Approve">
+                  <Check size={18} /> <span>Setujui</span>
                 </button>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* CUSTOM MODAL POP-UP */}
+      {modalOpen && modalAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className={`p-4 border-b flex items-center gap-3 ${
+              modalAction.type === 'APPROVE' ? 'bg-green-50 border-green-100 text-green-900' :
+              modalAction.type === 'REOPEN' ? 'bg-orange-50 border-orange-100 text-orange-900' :
+              'bg-red-50 border-red-100 text-red-900'
+            }`}>
+              {modalAction.type === 'APPROVE' && <Check size={24} className="text-green-600" />}
+              {modalAction.type === 'REOPEN' && <RotateCcw size={24} className="text-orange-600" />}
+              {modalAction.type === 'REJECT' && <X size={24} className="text-red-600" />}
+              <div>
+                <h3 className="font-bold text-lg">
+                  {modalAction.type === 'APPROVE' ? 'Setujui Inspeksi' : modalAction.type === 'REOPEN' ? 'Minta Perbaikan' : 'Tolak Inspeksi'}
+                </h3>
+                <p className="text-sm opacity-80">{modalAction.motorName}</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <MessageSquareText size={16} /> Catatan Opsional untuk Mekanik
+                </label>
+                <textarea 
+                  className="w-full p-3 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[var(--primary)] focus:outline-none min-h-[100px] text-sm resize-none"
+                  placeholder="Tambahkan catatan khusus mengapa Anda menyetujui, menolak, atau meminta perbaikan..."
+                  value={modalNote}
+                  onChange={(e) => setModalNote(e.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-[var(--border)] flex justify-end gap-3">
+              <button 
+                onClick={closeModal}
+                disabled={isSubmitting}
+                className="px-5 py-2.5 rounded-lg border border-[var(--border)] font-medium hover:bg-gray-100 transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={confirmAction}
+                disabled={isSubmitting}
+                className={`px-6 py-2.5 rounded-lg font-bold text-white transition-colors flex items-center gap-2 disabled:opacity-50 ${
+                  modalAction.type === 'APPROVE' ? 'bg-green-600 hover:bg-green-700' :
+                  modalAction.type === 'REOPEN' ? 'bg-orange-600 hover:bg-orange-700' :
+                  'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {isSubmitting ? (
+                  <>Memproses...</>
+                ) : (
+                  <>Konfirmasi {modalAction.type === 'APPROVE' ? 'Setuju' : modalAction.type === 'REOPEN' ? 'Perbaikan' : 'Tolak'}</>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
