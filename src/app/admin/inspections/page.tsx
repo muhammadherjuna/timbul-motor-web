@@ -154,50 +154,48 @@ export default function InspectionsDashboard() {
                       </span>
                     )}
                   </div>
+
+                  {/* Detail Form Button */}
+                  <Link
+                    href={`/admin/inventory/${sess.motorId}/edit?tab=4`}
+                    className="w-full py-2 px-3 rounded-lg border border-[var(--border)] text-xs font-semibold text-[var(--foreground)] bg-gray-50 hover:bg-white hover:border-gray-300 shadow-sm transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <Eye size={14} className="text-[var(--muted-foreground)]" />
+                    Lihat Detail Form Inspeksi
+                  </Link>
                 </div>
 
                 {/* Divider */}
                 <div className="border-t border-[var(--border)]" />
 
-                {/* Actions Footer */}
-                <div className="p-4 bg-gray-50/70 flex items-center gap-2">
-                  {/* Detail — icon-only with tooltip */}
-                  <Link
-                    href={`/admin/inventory/${sess.motorId}/edit?tab=4`}
-                    title="Lihat Detail Form Inspeksi"
-                    className="p-2.5 rounded-lg border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-white hover:shadow-sm transition-all"
+                {/* Actions Footer - Balanced 3 Column Grid */}
+                <div className="p-4 bg-gray-50/70 grid grid-cols-3 gap-2">
+                  {/* Perbaiki */}
+                  <button
+                    onClick={() => openModal(sess.id, 'REOPEN', sess.motor?.name)}
+                    className="w-full py-2 px-2 text-xs font-semibold text-amber-700 bg-white border border-amber-200 rounded-lg hover:bg-amber-50 flex items-center justify-center gap-1 transition-colors shadow-sm"
                   >
-                    <Eye size={17} />
-                  </Link>
+                    <RotateCcw size={14} className="shrink-0" />
+                    <span>Perbaiki</span>
+                  </button>
 
-                  <div className="flex-1 flex items-center gap-2">
-                    {/* Perbaiki */}
-                    <button
-                      onClick={() => openModal(sess.id, 'REOPEN', sess.motor?.name)}
-                      className="flex-1 py-2 px-3 text-sm font-semibold text-amber-700 bg-white border border-amber-200 rounded-lg hover:bg-amber-50 flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <RotateCcw size={15} />
-                      Perbaiki
-                    </button>
+                  {/* Tolak */}
+                  <button
+                    onClick={() => openModal(sess.id, 'REJECT', sess.motor?.name)}
+                    className="w-full py-2 px-2 text-xs font-semibold text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-50 flex items-center justify-center gap-1 transition-colors shadow-sm"
+                  >
+                    <X size={14} className="shrink-0" />
+                    <span>Tolak</span>
+                  </button>
 
-                    {/* Tolak */}
-                    <button
-                      onClick={() => openModal(sess.id, 'REJECT', sess.motor?.name)}
-                      className="flex-1 py-2 px-3 text-sm font-semibold text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-50 flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <X size={15} />
-                      Tolak
-                    </button>
-
-                    {/* Setujui — dominant */}
-                    <button
-                      onClick={() => openModal(sess.id, 'APPROVE', sess.motor?.name)}
-                      className="flex-[1.5] py-2 px-3 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 shadow hover:shadow-md flex items-center justify-center gap-1.5 transition-all"
-                    >
-                      <Check size={15} />
-                      Setujui
-                    </button>
-                  </div>
+                  {/* Setujui */}
+                  <button
+                    onClick={() => openModal(sess.id, 'APPROVE', sess.motor?.name)}
+                    className="w-full py-2 px-2 text-xs font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 shadow flex items-center justify-center gap-1 transition-all"
+                  >
+                    <Check size={14} className="shrink-0" />
+                    <span>Setujui</span>
+                  </button>
                 </div>
               </div>
             );
