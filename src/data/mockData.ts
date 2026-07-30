@@ -102,6 +102,7 @@ export const mockMotors: Motor[] = [
       stnk: true,
       engine: "Servis rutin Yamaha",
       body: "Lecet halus di dek bawah",
+      tires: "Depan 70%, Belakang 70%",
       minus: "Tidak ada"
     }
   },

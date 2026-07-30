@@ -1,9 +1,11 @@
 "use client";
 
-import { ArrowLeft, Upload, Save, X, Eye } from "lucide-react";
+import { ArrowLeft, Save, X, Eye, ChevronRight, AlertCircle, Camera, Tag, FileText, History, Wrench, Image as ImageIcon, Banknote, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { updateMotor } from "@/lib/actions";
+import { getBranches } from "@/lib/branch-actions";
 import { useFormStatus } from "react-dom";
 
 function SubmitButton() {
@@ -20,20 +22,39 @@ function SubmitButton() {
   );
 }
 
+const TABS = [
+  { id: 1, name: "Identitas Unit", icon: <Tag size={18} /> },
+  { id: 2, name: "Pajak & Dokumen", icon: <FileText size={18} /> },
+  { id: 3, name: "Riwayat Unit", icon: <History size={18} /> },
+  { id: 4, name: "Inspeksi & Kondisi", icon: <Wrench size={18} /> },
+  { id: 5, name: "Foto & Video", icon: <ImageIcon size={18} /> },
+  { id: 6, name: "Harga & Pembayaran", icon: <Banknote size={18} /> },
+  { id: 7, name: "Data Internal", icon: <Lock size={18} /> },
+];
+
 export default function EditMotorClient({ motor }: { motor: any }) {
+  const [activeTab, setActiveTab] = useState(1);
   const [previews, setPreviews] = useState<string[]>([
     motor.image || "", 
     motor.images?.[0] || "", 
     motor.images?.[1] || "", 
-    motor.images?.[2] || ""
+    motor.images?.[2] || "",
+    motor.images?.[3] || "",
+    motor.images?.[4] || "",
   ]);
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
-
+  const [showImageError, setShowImageError] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [branches, setBranches] = useState<any[]>([]);
 
-  // Auto-Save Draft
-  const draftKey = `editMotorDraft_${motor.id}`;
+  useEffect(() => {
+    setIsMounted(true);
+    getBranches().then(setBranches);
+  }, []);
+
+  const draftKey = `editMotorDraftV2_${motor.id}`;
 
   useEffect(() => {
     const draft = localStorage.getItem(draftKey);
@@ -41,6 +62,11 @@ export default function EditMotorClient({ motor }: { motor: any }) {
       try {
         const data = JSON.parse(draft);
         Object.entries(data).forEach(([key, value]) => {
+          if (['km', 'price', 'dp_min', 'purchase_price', 'recondition_cost', 'credit_price', 'monthly_install'].includes(key)) {
+            const el = document.getElementsByName(key)[0] as HTMLInputElement;
+            if (el) el.value = value as string;
+          }
+
           const input = formRef.current?.elements.namedItem(key);
           if (input) {
             if (input instanceof RadioNodeList) {
@@ -62,7 +88,7 @@ export default function EditMotorClient({ motor }: { motor: any }) {
     if (!formRef.current) return;
     const formData = new FormData(formRef.current);
     const data = Object.fromEntries(formData.entries());
-    delete data.image_0; delete data.image_1; delete data.image_2; delete data.image_3;
+    for (let i = 0; i < 15; i++) delete data[`image_${i}`];
     localStorage.setItem(draftKey, JSON.stringify(data));
   };
 
@@ -83,38 +109,27 @@ export default function EditMotorClient({ motor }: { motor: any }) {
           
           const text = "TIMBUL MOTOR";
           ctx.translate(img.width / 2, img.height / 2);
-          
-          // Calculate the exact diagonal angle
           const angle = Math.atan2(-img.height, img.width);
           ctx.rotate(angle);
           
           let fontSize = 100; 
           ctx.font = `bold ${fontSize}px Arial`;
           let textWidth = ctx.measureText(text).width;
-          
-          // Max allowed width is 80% of the image's diagonal length
           const diagonal = Math.sqrt(img.width * img.width + img.height * img.height);
           const maxTextWidth = diagonal * 0.8;
-          
-          // Scale font size so it fits perfectly without cropping
           fontSize = fontSize * (maxTextWidth / textWidth);
           ctx.font = `bold ${fontSize}px Arial`;
-          
-          ctx.fillStyle = "rgba(255, 255, 255, 0.25)"; // 25% opacity
+          ctx.fillStyle = "rgba(255, 255, 255, 0.25)"; 
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          
           ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
           ctx.shadowBlur = 10;
           ctx.shadowOffsetX = 2;
           ctx.shadowOffsetY = 2;
-          
           ctx.fillText(text, 0, 0);
-          
           ctx.rotate(-angle);
           ctx.translate(-img.width / 2, -img.height / 2);
           
-          // Convert back to file
           canvas.toBlob((blob) => {
             if (blob) {
               const watermarkedFile = new File([blob], file.name, { type: "image/jpeg" });
@@ -125,7 +140,6 @@ export default function EditMotorClient({ motor }: { motor: any }) {
                 fileInputRefs.current[index]!.files = dt.files;
               }
               
-              // Update preview safely using previous state
               const watermarkedUrl = URL.createObjectURL(watermarkedFile);
               setPreviews(prev => {
                 const next = [...prev];
@@ -135,10 +149,8 @@ export default function EditMotorClient({ motor }: { motor: any }) {
             }
           }, "image/jpeg", 0.9);
         }
-        
         URL.revokeObjectURL(objectUrl);
       };
-      
       img.src = objectUrl;
     }
   };
@@ -153,298 +165,559 @@ export default function EditMotorClient({ motor }: { motor: any }) {
     }
   };
 
-  const [km, setKm] = useState(motor.km.toLocaleString('id-ID'));
-  const [price, setPrice] = useState(motor.price.toLocaleString('id-ID'));
-  const [dp, setDp] = useState(motor.dp_min.toLocaleString('id-ID'));
-
-  const handleNumberFormat = (value: string, setter: (val: string) => void) => {
-    const numericVal = value.replace(/\D/g, "");
-    setter(numericVal ? Number(numericVal).toLocaleString("id-ID") : "");
+  const handleNumberFormat = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "");
+    e.target.value = value ? Number(value).toLocaleString("id-ID") : "";
+    handleFormChange(); 
   };
 
-  const labels = ["Utama (Depan)", "Samping Kiri", "Samping Kanan", "Speedometer"];
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (!previews[0]) {
+      e.preventDefault();
+      setShowImageError(true);
+      return;
+    }
+    localStorage.removeItem(draftKey);
+  };
 
+  const imageLabels = ["Foto Utama", "Samping Kiri", "Samping Kanan", "Mesin Kiri", "Mesin Kanan", "Speedometer"];
   const updateMotorWithId = updateMotor.bind(null, motor.id);
-  
-  const [taxMonth, taxYear] = motor.tax_expiry ? motor.tax_expiry.split(" ") : ["", ""];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12 relative">
-      <div className="flex items-center gap-4">
-        <Link 
-          href="/admin/inventory" 
-          className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors text-[var(--muted-foreground)]"
-        >
+    <div className="max-w-6xl mx-auto flex flex-col gap-6 pb-24 relative">
+      {showImageError && isMounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in duration-200">
+            <div className="bg-red-50 p-4 flex items-center justify-center">
+              <AlertCircle size={48} className="text-red-500" />
+            </div>
+            <div className="p-6 text-center space-y-3">
+              <h3 className="text-lg font-bold text-[var(--foreground)]">Foto Utama Kosong!</h3>
+              <p className="text-sm text-[var(--muted-foreground)]">
+                Anda wajib mengunggah setidaknya 1 buah <strong>Foto Utama</strong> di Tab 5 sebelum menyimpan.
+              </p>
+            </div>
+            <div className="p-4 bg-[var(--muted)]/50 border-t border-[var(--border)]">
+              <button 
+                onClick={() => setShowImageError(false)}
+                className="w-full py-2.5 bg-[var(--primary)] text-white font-semibold rounded-lg hover:bg-[var(--primary)]/90 transition-colors"
+              >
+                Mengerti
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-[var(--border)] shadow-sm">
+        <Link href="/admin/inventory" className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors text-[var(--muted-foreground)]">
           <ArrowLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">Edit Motor: {motor.name}</h1>
-          <p className="text-sm text-[var(--muted-foreground)]">Kode Unit: {motor.code}</p>
+          <h1 className="text-xl font-bold text-[var(--foreground)]">Edit Motor: {motor.name}</h1>
+          <p className="text-xs text-[var(--muted-foreground)]">Kode Unit: {motor.code}</p>
         </div>
       </div>
 
-      <form 
-        ref={formRef}
-        onChange={handleFormChange}
-        onSubmit={() => localStorage.removeItem(draftKey)}
-        className="space-y-6" 
-        action={updateMotorWithId}
-      >
-        
-        {/* Foto Unit */}
-        <div className="bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-4 mt-6">
-          <h2 className="font-bold text-lg border-b border-[var(--border)] flex items-center justify-between pb-2">
-            <span>Foto Unit</span>
-            <span className="text-xs font-normal text-blue-600 bg-blue-50 px-2 py-1 rounded">Auto-Watermark Aktif</span>
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {previews.map((preview, index) => (
-              <div key={index} className="space-y-2">
-                <div 
-                  className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center relative overflow-hidden cursor-pointer transition-colors ${preview ? 'border-[var(--primary)]' : 'border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/5'}`}
-                  onClick={() => fileInputRefs.current[index]?.click()}
+      <div className="flex flex-col md:flex-row gap-6 items-start">
+        {/* Sidebar Tabs */}
+        <div className="md:w-64 flex-shrink-0">
+          <div className="bg-white rounded-xl border border-[var(--border)] shadow-sm overflow-hidden sticky top-8">
+            <div className="p-3 bg-[var(--muted)]/50 border-b border-[var(--border)] font-semibold text-sm text-[var(--foreground)]">Navigasi Form</div>
+            <div className="flex flex-col">
+              {TABS.map((tab) => (
+                <button
+                  type="button"
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors border-l-4 ${
+                    activeTab === tab.id 
+                      ? "border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)]" 
+                      : "border-transparent text-[var(--muted-foreground)] hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)]"
+                  }`}
                 >
-                  {preview ? (
-                    <>
-                      <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
-                      <div className="absolute top-2 right-2 flex gap-1">
-                        <button 
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setSelectedImage(preview); }}
-                          className="p-1.5 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-sm"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={(e) => removeImage(e, index)}
-                          className="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-sm"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="text-[var(--muted-foreground)] mb-2" size={24} />
-                      <span className="text-xs text-[var(--muted-foreground)] text-center px-2">Upload Foto</span>
-                    </>
-                  )}
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    name={`image_${index}`}
-                    className="hidden" 
-                    ref={(el) => {
-                      if (el) fileInputRefs.current[index] = el;
-                    }}
-                    onChange={(e) => handleImageUpload(e, index)}
-                  />
-                  <input type="hidden" name={`existing_image_${index}`} value={preview || ""} />
-                </div>
-                <div className="text-center">
-                  <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded-full">{labels[index]}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-[var(--muted-foreground)]">Format: JPG, PNG. Max 5MB/foto. Watermark logo Timbul Motor akan ditambahkan otomatis di sudut kanan bawah.</p>
-        </div>
-
-        {/* Info Dasar */}
-        <div className="bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-4 mt-6">
-          <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2">Informasi Dasar</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Merek <span className="text-red-500">*</span></label>
-              <select name="brand" defaultValue={motor.brand} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
-                <option value="Honda">Honda</option>
-                <option value="Yamaha">Yamaha</option>
-                <option value="Suzuki">Suzuki</option>
-                <option value="Kawasaki">Kawasaki</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Tipe Motor <span className="text-red-500">*</span></label>
-              <select name="type" defaultValue={motor.type} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
-                <option value="matic">Matic</option>
-                <option value="bebek">Bebek</option>
-                <option value="sport">Sport</option>
-              </select>
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-sm font-medium">Nama/Seri Lengkap <span className="text-red-500">*</span></label>
-              <input type="text" name="name" defaultValue={motor.name} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Tahun Pembuatan <span className="text-red-500">*</span></label>
-              <input type="number" name="year" defaultValue={motor.year} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Warna Motor <span className="text-red-500">*</span></label>
-              <input type="text" name="color" defaultValue={motor.color} placeholder="Cth: Hitam Doff" required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Kilometer (Odo) <span className="text-red-500">*</span></label>
-              <input 
-                type="text" 
-                name="km"
-                required
-                value={km}
-                onChange={(e) => handleNumberFormat(e.target.value, setKm)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" 
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Link Video Walkaround (Opsional)
-              </label>
-              <div className="relative">
-                <input type="url" name="videoUrl" defaultValue={motor.videoUrl || ""} className="w-full pl-3 pr-3 py-2 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[var(--primary)] outline-none" />
-              </div>
-            </div>
-            <div className="space-y-1 sm:col-span-2 mt-2">
-              <label className="text-sm font-bold text-[var(--foreground)]">Deskripsi Promosi Kendaraan</label>
-              <p className="text-xs text-[var(--muted-foreground)] mb-2">Tuliskan keunggulan motor ini untuk menarik minat pembeli. Teks ini akan muncul di bagian atas halaman detail.</p>
-              <textarea name="description" defaultValue={motor.description} rows={3} placeholder="Contoh: Motor simpanan, KM rendah asli, surat lengkap tangan pertama. Beli sekarang gratis ganti oli!" className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm resize-none"></textarea>
+                  <span className="flex-shrink-0">{tab.icon}</span>
+                  {tab.name}
+                  {activeTab === tab.id && <ChevronRight size={16} className="ml-auto" />}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Harga & Status */}
-        <div className="bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-4">
-          <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2">Harga & Status</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Harga Jual (Rp) <span className="text-red-500">*</span></label>
-              <input 
-                type="text" 
-                name="price"
-                required
-                value={price}
-                onChange={(e) => handleNumberFormat(e.target.value, setPrice)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" 
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Minimal DP (Rp) <span className="text-red-500">*</span></label>
-              <input 
-                type="text" 
-                name="dp_min"
-                required
-                value={dp}
-                onChange={(e) => handleNumberFormat(e.target.value, setDp)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" 
-              />
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-sm font-medium">Status <span className="text-red-500">*</span></label>
-              <select name="status" defaultValue={motor.status} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
-                <option value="Baru Masuk">Baru Masuk</option>
-                <option value="Tersedia">Tersedia</option>
-                <option value="Sedang Dipesan">Sedang Dipesan</option>
-                <option value="Terjual">Terjual</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Kondisi & Surat */}
-        <div className="bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-4">
-          <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2">Surat & Kondisi Fisik</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-sm font-medium">Status Pajak <span className="text-red-500">*</span></label>
-              <div className="flex gap-2">
-                <select name="tax_status" defaultValue={motor.tax_status} required className="w-1/4 px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
-                  <option value="Hidup">Hidup</option>
-                  <option value="Mati">Mati</option>
-                </select>
-                <select name="tax_expiry_month" defaultValue={taxMonth} required className="w-1/4 px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
-                  <option value="">Bulan</option>
-                  {["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-                <input type="number" name="tax_expiry_year" defaultValue={taxYear} placeholder="Tahun (Cth: 2025)" required className="w-1/2 px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
-              </div>
-            </div>
-            <div className="flex gap-4 items-end pb-2">
-              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                <input type="checkbox" name="bpkb_ready" defaultChecked={motor.bpkb_ready} className="w-4 h-4 accent-[var(--primary)]" />
-                BPKB Ready
-              </label>
-              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                <input type="checkbox" name="stnk_ready" defaultChecked={motor.stnk_ready} className="w-4 h-4 accent-[var(--primary)]" />
-                STNK Ready
-              </label>
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-sm font-medium">Kondisi Bodi</label>
-              <input type="text" name="body_condition" defaultValue={motor.body_condition} placeholder="Cth: Mulus 95%, lecet pemakaian wajar" className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
-            </div>
-          </div>
-        </div>
-
-        {/* Laporan Inspeksi */}
-        <div className="bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-4">
-          <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2">Laporan Inspeksi (Digital Check-Sheet)</h2>
-          
-          <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-            {[
-              { id: 'engine_sound', label: 'Suara & Performa Mesin', val: motor.engine_sound },
-              { id: 'cvt_chain', label: 'CVT / Rantai', val: motor.cvt_chain },
-              { id: 'electrical_lights', label: 'Kelistrikan & Lampu', val: motor.electrical_lights },
-              { id: 'brakes', label: 'Sistem Pengereman', val: motor.brakes },
-              { id: 'suspension', label: 'Suspensi & Kaki-kaki', val: motor.suspension }
-            ].map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 border border-[var(--border)] rounded-lg">
-                <span className="text-sm font-medium">{item.label}</span>
-                <div className="flex gap-2">
-                  <label className="flex items-center gap-1 text-xs cursor-pointer">
-                    <input type="radio" name={`inspection.${item.id}`} value="Aman" defaultChecked={item.val !== "Catatan"} className="accent-green-600" />
-                    <span className="text-green-700 font-medium">Aman</span>
-                  </label>
-                  <label className="flex items-center gap-1 text-xs cursor-pointer">
-                    <input type="radio" name={`inspection.${item.id}`} value="Catatan" defaultChecked={item.val === "Catatan"} className="accent-yellow-600" />
-                    <span className="text-yellow-700 font-medium">Catatan</span>
-                  </label>
-                </div>
-              </div>
-            ))}
-            
-            <div className="space-y-1 sm:col-span-2 mt-2 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <label className="text-sm font-bold text-yellow-900">Catatan Kekurangan Fisik / Minus</label>
-              <p className="text-xs text-yellow-700 mb-2">Tuliskan kekurangan motor (jika ada) sebagai bentuk transparansi dealer. Teks ini akan disorot kuning di dalam kotak Hasil Inspeksi pembeli.</p>
-              <textarea name="inspection.notes" defaultValue={motor.notes} rows={2} placeholder="Contoh: Lecet pemakaian di spakbor depan, mika sein kiri ada retak rambut sedikit." className="w-full px-3 py-2 rounded-lg border border-yellow-300 focus:outline-none focus:border-yellow-500 text-sm resize-none bg-white"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 pt-4">
-          <Link 
-            href="/admin/inventory"
-            className="px-6 py-2.5 rounded-lg border border-[var(--border)] font-medium hover:bg-[var(--muted)] transition-colors"
+        {/* Form Content */}
+        <div className="flex-1">
+          <form 
+            ref={formRef}
+            onChange={handleFormChange}
+            onSubmit={handleSubmit}
+            className="space-y-6" 
+            action={updateMotorWithId}
           >
-            Batal
-          </Link>
-          <SubmitButton />
+            {/* Tab 1: Identitas Unit */}
+            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 1 && "hidden"}`}>
+              <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center gap-2">
+                <Tag className="text-[var(--primary)]" size={20} /> Tab 1: Identitas & Spesifikasi Unit
+              </h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Merek <span className="text-red-500">*</span></label>
+                  <select name="brand" defaultValue={motor.brand} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="">Pilih Merek</option>
+                    <option value="Honda">Honda</option>
+                    <option value="Yamaha">Yamaha</option>
+                    <option value="Suzuki">Suzuki</option>
+                    <option value="Kawasaki">Kawasaki</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Kategori <span className="text-red-500">*</span></label>
+                  <select name="type" defaultValue={motor.type} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="">Pilih Kategori</option>
+                    <option value="matic">Matic</option>
+                    <option value="bebek">Bebek</option>
+                    <option value="sport">Sport</option>
+                    <option value="trail">Trail/Cross</option>
+                    <option value="cruiser">Cruiser</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Nama / Seri Lengkap <span className="text-red-500">*</span></label>
+                  <input type="text" name="name" defaultValue={motor.name} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Varian / Trim <span className="text-xs text-gray-500 font-normal">(Opsional)</span></label>
+                  <input type="text" name="variant" defaultValue={motor.variant || ""} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Kapasitas Mesin (cc) <span className="text-red-500">*</span></label>
+                  <input type="number" name="cc" defaultValue={motor.cc} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Transmisi <span className="text-red-500">*</span></label>
+                  <select name="transmission" defaultValue={motor.transmission} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Automatic">Automatic (CVT)</option>
+                    <option value="Manual">Manual</option>
+                    <option value="Semi-Automatic">Semi-Automatic</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Sistem Bahan Bakar</label>
+                  <select name="fuel_system" defaultValue={motor.fuel_system || "Injeksi"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Injeksi">Injeksi (FI)</option>
+                    <option value="Karburator">Karburator</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Tahun Pembuatan <span className="text-red-500">*</span></label>
+                  <input type="number" name="year" defaultValue={motor.year} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Warna Asli <span className="text-red-500">*</span></label>
+                  <input type="text" name="color" defaultValue={motor.color} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Kilometer (Odo) <span className="text-red-500">*</span></label>
+                  <input type="text" name="km" defaultValue={motor.km.toLocaleString("id-ID")} required onChange={handleNumberFormat} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Lokasi Unit <span className="text-red-500">*</span></label>
+                  <select name="location" defaultValue={motor.location || "Showroom Utama Kebumen"} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    {branches.length > 0 ? branches.map(b => (
+                      <option key={b.id} value={b.name}>{b.name}</option>
+                    )) : (
+                      <>
+                        <option value="Showroom Utama Kebumen">Showroom Utama Kebumen</option>
+                        <option value="Cabang Gombong">Cabang Gombong</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Tab 2: Dokumen & Pajak */}
+            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 2 && "hidden"}`}>
+              <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center gap-2">
+                <FileText className="text-[var(--primary)]" size={20} /> Tab 2: Legalitas & Dokumen
+              </h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Nomor Polisi (Plat) <span className="text-xs text-red-500">(Internal)</span></label>
+                  <input type="text" name="plate_number" defaultValue={motor.plate_number || ""} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Wilayah Registrasi</label>
+                  <input type="text" name="plate_area" defaultValue={motor.plate_area || ""} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Status Pajak Tahunan <span className="text-red-500">*</span></label>
+                  <select name="tax_status" defaultValue={motor.tax_status} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Hidup">Hidup (Aktif)</option>
+                    <option value="Mati">Mati (Kadaluarsa)</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Jatuh Tempo Pajak <span className="text-red-500">*</span></label>
+                  <input type="date" name="tax_expiry" defaultValue={motor.tax_expiry} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Masa Berlaku STNK (Plat 5 Thn)</label>
+                  <input type="date" name="stnk_expiry" defaultValue={motor.stnk_expiry || ""} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                
+                <div className="col-span-2 border-t border-[var(--border)] my-2"></div>
+                
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Status STNK</label>
+                  <select name="stnk_status" defaultValue={motor.stnk_status || "Ada, asli, dan terverifikasi"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Ada, asli, dan terverifikasi">Ada, asli, terverifikasi</option>
+                    <option value="Ada, belum diverifikasi">Ada, belum diverifikasi</option>
+                    <option value="Proses Perpanjangan">Proses Perpanjangan</option>
+                    <option value="Hilang">Hilang</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Status BPKB</label>
+                  <select name="bpkb_status" defaultValue={motor.bpkb_status || "Ada, asli, dan terverifikasi"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Ada, asli, dan terverifikasi">Ada, asli, terverifikasi</option>
+                    <option value="Sekolah / Dijaminkan">Sekolah / Dijaminkan (Butuh Pelunasan)</option>
+                    <option value="Proses Balik Nama">Proses Balik Nama</option>
+                    <option value="Tidak Tersedia">Tidak Tersedia</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Kesesuaian Nomor Rangka</label>
+                  <select name="chassis_match" defaultValue={motor.chassis_match || "Sesuai"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Sesuai">Sesuai Dokumen</option>
+                    <option value="Tidak Sesuai">Tidak Sesuai</option>
+                    <option value="Belum Diperiksa">Belum Diperiksa</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Kesesuaian Nomor Mesin</label>
+                  <select name="engine_match" defaultValue={motor.engine_match || "Sesuai"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Sesuai">Sesuai Dokumen</option>
+                    <option value="Tidak Sesuai">Tidak Sesuai</option>
+                    <option value="Belum Diperiksa">Belum Diperiksa</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">KTP Pemilik Sebelumnya</label>
+                  <select name="ktp_owner" defaultValue={motor.ktp_owner || "Tersedia"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Tersedia">Tersedia (Bisa pinjam KTP)</option>
+                    <option value="Tidak Tersedia">Tidak Tersedia (Wajib BBN)</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Faktur Kendaraan</label>
+                  <select name="faktur" defaultValue={motor.faktur || "Ada"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Ada">Ada</option>
+                    <option value="Tidak Ada">Tidak Ada</option>
+                  </select>
+                </div>
+                
+                <div className="col-span-2 p-3 bg-red-50 border border-red-100 rounded-lg space-y-2">
+                  <p className="text-xs font-bold text-red-800 flex items-center gap-1.5"><AlertCircle size={14} /> Data Internal Rahasia (TIDAK DITAMPILKAN DI PUBLIK)</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input type="text" name="chassis_number" defaultValue={motor.chassis_number || ""} placeholder="Nomor Rangka Lengkap" className="w-full px-3 py-2 rounded-lg border border-red-200 focus:outline-none focus:border-red-400 text-sm bg-white" />
+                    <input type="text" name="engine_number" defaultValue={motor.engine_number || ""} placeholder="Nomor Mesin Lengkap" className="w-full px-3 py-2 rounded-lg border border-red-200 focus:outline-none focus:border-red-400 text-sm bg-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tab 3: Riwayat Unit */}
+            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 3 && "hidden"}`}>
+              <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center gap-2">
+                <History className="text-[var(--primary)]" size={20} /> Tab 3: Riwayat Kendaraan
+              </h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Jumlah Pemilik Sebelumnya</label>
+                  <select name="previous_owners" defaultValue={motor.previous_owners || "Tangan Pertama"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Tangan Pertama">Tangan Pertama</option>
+                    <option value="Tangan Kedua">Tangan Kedua</option>
+                    <option value="Lebih dari dua">Lebih dari dua</option>
+                    <option value="Tidak Diketahui">Tidak Diketahui</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Penggunaan Sebelumnya</label>
+                  <select name="usage_type" defaultValue={motor.usage_type || "Pribadi / Harian"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Pribadi / Harian">Pribadi / Harian</option>
+                    <option value="Ojek Online">Ojek Online (Ojol)</option>
+                    <option value="Operasional Perusahaan">Operasional Perusahaan</option>
+                    <option value="Tidak Diketahui">Tidak Diketahui</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Riwayat Kecelakaan / Jatuh</label>
+                  <select name="crash_history" defaultValue={motor.crash_history || "Bebas Tabrak / Jatuh"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Bebas Tabrak / Jatuh">Bebas Tabrak / Jatuh (Aman)</option>
+                    <option value="Pernah Jatuh Ringan">Pernah Jatuh Ringan (Lecet/Spion Patah)</option>
+                    <option value="Pernah Tabrakan Berat">Tabrakan Berat (Ganti Rangka dll)</option>
+                    <option value="Tidak Diketahui">Tidak Diketahui</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Riwayat Banjir</label>
+                  <select name="flood_history" defaultValue={motor.flood_history || "Bebas Banjir"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Bebas Banjir">Bebas Banjir</option>
+                    <option value="Pernah Terendam">Pernah Terendam</option>
+                    <option value="Tidak Diketahui">Tidak Diketahui</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Riwayat Turun Mesin / Bore Up</label>
+                  <select name="engine_rebuild" defaultValue={motor.engine_rebuild || "Standar Pabrik (Segel)"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Standar Pabrik (Segel)">Standar Pabrik (Belum pernah bongkar)</option>
+                    <option value="Pernah Servis Besar">Pernah Servis Besar</option>
+                    <option value="Modifikasi / Bore Up">Modifikasi / Bore Up</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Status Odometer (KM)</label>
+                  <select name="odo_status" defaultValue={motor.odo_status || "Asli (Terverifikasi)"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="Asli (Terverifikasi)">Asli (Sesuai histori servis)</option>
+                    <option value="Indikasi Riset/Putaran">Indikasi Riset / Tidak Wajar</option>
+                    <option value="Mati / Rusak">Speedometer Rusak</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Tab 4: Inspeksi */}
+            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 4 && "hidden"}`}>
+              <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center justify-between">
+                <span className="flex items-center gap-2"><Wrench className="text-[var(--primary)]" size={20} /> Tab 4: Laporan Inspeksi (Digital Check-Sheet)</span>
+              </h2>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b border-[var(--border)]">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[var(--muted-foreground)] uppercase">Grade Inspeksi</label>
+                    <select name="inspection_grade" defaultValue={motor.inspection_grade || "Grade A"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] font-bold focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                      <option value="Grade A">Grade A (Sangat Baik)</option>
+                      <option value="Grade B">Grade B (Baik, Catatan Ringan)</option>
+                      <option value="Grade C">Grade C (Perlu Perbaikan)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="text-xs font-bold text-[var(--muted-foreground)] uppercase">Nama Inspektor <span className="text-red-500">*</span></label>
+                    <input type="text" name="inspector_name" defaultValue={motor.inspector_name || ""} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
+                  {[
+                    { id: 'engine_start', label: 'Starter & Cold Start', val: motor.engine_start || "Sangat Baik" },
+                    { id: 'engine_sound', label: 'Suara & Kompresi Mesin', val: motor.engine_sound || motor.engine_condition || "Sangat Baik" },
+                    { id: 'cvt_chain', label: 'Transmisi (CVT / Kopling / Rantai)', val: motor.cvt_chain || "Sangat Baik" },
+                    { id: 'electrical_lights', label: 'Kelistrikan, Lampu & Aki', val: motor.electrical_lights || "Sangat Baik" },
+                    { id: 'brakes', label: 'Sistem Pengereman (Kampas & Cakram)', val: motor.brakes || "Sangat Baik" },
+                    { id: 'suspension', label: 'Suspensi, Rangka & Kaki-kaki', val: motor.suspension || "Sangat Baik" },
+                    { id: 'body_paint', label: 'Kondisi Cat & Bodi Plastik', val: motor.body_paint || motor.body_condition || "Sangat Baik" },
+                    { id: 'test_drive', label: 'Hasil Uji Jalan (Test Drive)', val: motor.test_drive || "Sangat Baik" }
+                  ].map((item) => (
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-[var(--border)] rounded-lg bg-gray-50/50">
+                      <span className="text-sm font-medium mb-2 sm:mb-0">{item.label}</span>
+                      <select name={item.id} defaultValue={item.val} className="px-2 py-1.5 rounded border border-[var(--border)] text-xs font-medium bg-white focus:outline-none focus:border-[var(--primary)]">
+                        <option value="Belum Diperiksa">Belum Diperiksa</option>
+                        <option value="Sangat Baik">Sangat Baik</option>
+                        <option value="Baik">Baik / Normal</option>
+                        <option value="Ada Catatan Ringan">Catatan Ringan</option>
+                        <option value="Perlu Perbaikan">Perlu Perbaikan</option>
+                      </select>
+                    </div>
+                  ))}
+                  
+                  <div className="space-y-1 sm:col-span-2 mt-2 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <label className="text-sm font-bold text-yellow-900">Deskripsi Kekurangan / Catatan Perbaikan</label>
+                    <textarea name="notes" defaultValue={motor.notes || ""} rows={2} className="w-full px-3 py-2 mt-1 rounded-lg border border-yellow-300 focus:outline-none focus:border-yellow-500 text-sm resize-none bg-white"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tab 5: Foto */}
+            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 5 && "hidden"}`}>
+              <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center justify-between">
+                <span className="flex items-center gap-2"><ImageIcon className="text-[var(--primary)]" size={20} /> Tab 5: Galeri & Video</span>
+                <span className="text-xs font-normal text-blue-600 bg-blue-50 px-2 py-1 rounded">Auto-Watermark</span>
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {previews.map((preview, index) => (
+                  <div key={index} className="space-y-2">
+                    <div 
+                      className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center relative overflow-hidden cursor-pointer transition-colors ${preview ? 'border-[var(--primary)]' : 'border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/5'}`}
+                      onClick={() => fileInputRefs.current[index]?.click()}
+                    >
+                      {preview ? (
+                        <>
+                          <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedImage(preview); }} className="p-1.5 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-sm"><Eye size={14} /></button>
+                            <button type="button" onClick={(e) => removeImage(e, index)} className="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-sm"><X size={14} /></button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="text-[var(--muted-foreground)] mb-2" size={24} />
+                          <span className="text-xs text-[var(--muted-foreground)] text-center px-2">Upload {imageLabels[index]}</span>
+                        </>
+                      )}
+                      <input 
+                        type="file" accept="image/*" name={`image_${index}`} className="hidden" 
+                        ref={(el) => { if (el) fileInputRefs.current[index] = el; }}
+                        onChange={(e) => handleImageUpload(e, index)}
+                      />
+                      <input type="hidden" name={`existing_image_${index}`} value={preview || ""} />
+                    </div>
+                    <div className="text-center">
+                      <span className="text-xs font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded-full">{imageLabels[index] || `Foto ${index+1}`}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="space-y-1 sm:col-span-2 mt-2">
+                <label className="text-sm font-bold text-[var(--foreground)]">Deskripsi Promosi Kendaraan</label>
+                <textarea name="description" defaultValue={motor.description} rows={3} placeholder="Contoh: Motor simpanan, KM rendah asli, surat lengkap tangan pertama." className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm resize-none"></textarea>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Link Video Walkaround (Opsional)
+                </label>
+                <div className="relative">
+                  <input type="url" name="videoUrl" defaultValue={motor.videoUrl || ""} className="w-full pl-3 pr-3 py-2 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[var(--primary)] outline-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* Tab 6: Harga */}
+            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 6 && "hidden"}`}>
+              <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center gap-2">
+                <Banknote className="text-[var(--primary)]" size={20} /> Tab 6: Penjualan & Skema Kredit
+              </h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Status Publikasi Unit <span className="text-red-500">*</span></label>
+                  <select name="status" defaultValue={motor.status} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white dark:bg-[var(--background)]">
+                    <option value="Draft">Draft (Disembunyikan)</option>
+                    <option value="Tersedia">Tersedia (Dijual Publik)</option>
+                    <option value="Sedang Dipesan">Sedang di-Booking (DP)</option>
+                    <option value="Terjual">Terjual / Laku</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Bisa Tukar Tambah?</label>
+                  <select name="trade_in_avail" defaultValue={motor.trade_in_avail ? "true" : "false"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="true">Ya, Menerima Tukar Tambah</option>
+                    <option value="false">Tidak, Hanya Jual</option>
+                  </select>
+                </div>
+
+                <div className="col-span-2 border-t border-[var(--border)] my-2"></div>
+                <div className="col-span-2"><h3 className="font-bold text-gray-700">Skema Harga & Kredit</h3></div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Harga Cash (Tunai) <span className="text-red-500">*</span></label>
+                  <input type="text" name="price" defaultValue={motor.price?.toLocaleString("id-ID") || ""} required onChange={handleNumberFormat} className="w-full px-3 py-2 font-bold rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Bisa Nego Harga Cash?</label>
+                  <select name="is_nego" defaultValue={motor.is_nego ? "true" : "false"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
+                    <option value="true">Bisa Nego di Tempat</option>
+                    <option value="false">Harga Pas (Nett)</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Harga Kredit (Jika berbeda)</label>
+                  <input type="text" name="credit_price" defaultValue={motor.credit_price?.toLocaleString("id-ID") || ""} onChange={handleNumberFormat} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Minimal DP (Rp) <span className="text-red-500">*</span></label>
+                  <input type="text" name="dp_min" defaultValue={motor.dp_min?.toLocaleString("id-ID") || ""} required onChange={handleNumberFormat} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Estimasi Cicilan Termurah</label>
+                  <input type="text" name="monthly_install" defaultValue={motor.monthly_install?.toLocaleString("id-ID") || ""} onChange={handleNumberFormat} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Pilihan Tenor Kredit <span className="text-xs text-gray-500 font-normal">(Bulan)</span></label>
+                  <input type="text" name="tenor_options" defaultValue={motor.tenor_options || ""} pattern="^[0-9,\s]+$" title="Masukkan hanya angka dan koma, contoh: 11, 23, 35" placeholder="Cth: 11, 23, 35 (hanya angka & koma)" className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+              </div>
+            </div>
+
+            {/* Tab 7: Internal */}
+            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 7 && "hidden"}`}>
+              <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center gap-2">
+                <Lock className="text-[var(--primary)]" size={20} /> Tab 7: Data Internal Dealer
+              </h2>
+              <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2">
+                <AlertCircle className="text-red-600 mt-0.5 flex-shrink-0" size={16} />
+                <p className="text-xs font-medium text-red-800">
+                  Peringatan: Seluruh data di tab ini bersifat sangat RAHASIA dan tidak akan pernah ditampilkan ke publik / pembeli. Hanya digunakan untuk menghitung estimasi profit dealer.
+                </p>
+              </div>
+              
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Harga Modal Beli / Akuisisi</label>
+                  <input type="text" name="purchase_price" defaultValue={motor.purchase_price?.toLocaleString("id-ID") || ""} onChange={handleNumberFormat} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Biaya Rekondisi / Servis / Detailing</label>
+                  <input type="text" name="recondition_cost" defaultValue={motor.recondition_cost?.toLocaleString("id-ID") || ""} onChange={handleNumberFormat} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Nama & Kontak Supplier / Pemilik Lama</label>
+                  <input type="text" name="supplier_name" defaultValue={motor.supplier_name || ""} placeholder="Cth: Bpk Budi (0812-3456-7890)" className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Sales Incharge (PIC)</label>
+                  <input type="text" name="sales_rep" defaultValue={motor.sales_rep || ""} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-sm font-medium">Catatan Internal / Rahasia</label>
+                  <textarea name="internal_notes" defaultValue={motor.internal_notes || ""} rows={2} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm resize-none"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50 p-4 rounded-xl border border-[var(--border)]">
+              <div className="text-sm text-[var(--muted-foreground)]">
+                Langkah {activeTab} dari {TABS.length}
+              </div>
+              <div className="flex gap-3 w-full sm:w-auto">
+                {activeTab < TABS.length ? (
+                  <button 
+                    type="button"
+                    onClick={() => setActiveTab(prev => Math.min(prev + 1, TABS.length))}
+                    className="flex-1 sm:flex-none px-6 py-2.5 rounded-lg border border-[var(--border)] bg-white font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                  >
+                    Selanjutnya <ChevronRight size={18} />
+                  </button>
+                ) : (
+                  <SubmitButton />
+                )}
+              </div>
+            </div>
+
+          </form>
         </div>
-      </form>
+      </div>
 
       {selectedImage && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
           onClick={() => setSelectedImage(null)}
         >
-          <img src={selectedImage} alt="Preview Fullscreen" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
-          <button 
-            className="absolute top-4 right-4 p-2 bg-white/10 text-white rounded-full hover:bg-white/20 transition-colors"
-            onClick={() => setSelectedImage(null)}
-          >
-            <X size={24} />
-          </button>
+          <img src={selectedImage} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
+          <button className="absolute top-4 right-4 p-2 bg-white/10 text-white rounded-full hover:bg-white/20" onClick={() => setSelectedImage(null)}><X size={24} /></button>
         </div>
       )}
     </div>

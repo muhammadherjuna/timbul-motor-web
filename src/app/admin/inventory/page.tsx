@@ -4,9 +4,14 @@ import InventoryClient from "./InventoryClient";
 export const dynamic = "force-dynamic";
 
 export default async function InventoryPage() {
-  const motors = await prisma.motor.findMany({
+  const motorsData: any = await prisma.motor.findMany({
     orderBy: { createdAt: "desc" },
-  });
+    include: { pricing: true, document: true, history: true, inspection: true }
+  } as any);
+
+  const motors: any[] = motorsData.map((m: any) => ({
+    ...m, ...(m.pricing||{}), ...(m.document||{}), ...(m.history||{}), ...(m.inspection||{})
+  }));
 
   return <InventoryClient initialMotors={motors} />;
 }

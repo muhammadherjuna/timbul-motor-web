@@ -3,9 +3,14 @@ import { Package, CheckCircle, Clock, PlusCircle } from "lucide-react";
 import Link from "next/link";
 
 export default async function AdminDashboard() {
-  const motors = await prisma.motor.findMany({
-    orderBy: { createdAt: 'desc' }
-  });
+  const motorsData: any = await prisma.motor.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { pricing: true, document: true, history: true, inspection: true }
+  } as any);
+
+  const motors: any[] = motorsData.map((m: any) => ({
+    ...m, ...(m.pricing||{}), ...(m.document||{}), ...(m.history||{}), ...(m.inspection||{})
+  }));
 
   const totalMotors = motors.length;
   const availableMotors = motors.filter(m => m.status === "Tersedia" || m.status === "Baru Masuk").length;

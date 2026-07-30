@@ -8,41 +8,167 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  role      String   @default("sales") // admin, sales, mechanic
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inspections MotorInspection[]
+  sales       MotorPricing[]
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String
+  contact   String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pricings MotorPricing[]
+}
+
 model Motor {
-  id                String   @id @default(uuid())
-  code              String   @unique
-  brand             String
-  name              String
-  type              String
-  year              Int
-  km                Int
-  price             Int
-  dp_min            Int
-  status            String   // e.g. "Baru Masuk", "Tersedia", "Sedang Dipesan", "Terjual"
-  image             String
-  images            String[] // Array of strings for PostgreSQL
-  videoUrl          String?
+  id   String @id @default(uuid())
+  code String @unique
 
-  // Specs
-  cc                Int
-  transmission      String
-  color             String
-  tax_status        String
-  tax_expiry        String
-  description       String
-  bpkb_ready        Boolean  @default(true)
-  stnk_ready        Boolean  @default(true)
-  body_condition    String?
-  engine_condition  String?
+  // Tab 1: Identitas & Spesifikasi
+  location     String?
+  brand        String
+  name         String
+  type         String
+  variant      String?
+  year         Int
+  color        String
+  cc           Int
+  transmission String
+  fuel_system  String?
+  key_type     String?
+  km           Int
 
-  // Inspection
+  // Tab 5: Foto & Video
+  image            String
+  images           String[]
+  media_json       Json?
+  videoUrl         String?
+  video_cold_start String?
+
+  description String
+
+  status String // Draft, Tersedia, Sedang Dipesan, Terjual
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  document   MotorDocument?
+  history    MotorHistory?
+  inspection MotorInspection?
+  pricing    MotorPricing?
+}
+
+model MotorDocument {
+  id      String @id @default(uuid())
+  motorId String @unique
+  motor   Motor  @relation(fields: [motorId], references: [id], onDelete: Cascade)
+
+  plate_number   String?
+  plate_area     String?
+  tax_status     String
+  tax_expiry     String
+  stnk_expiry    String?
+  stnk_status    String?
+  bpkb_status    String?
+  chassis_number String?
+  engine_number  String?
+  chassis_match  String?
+  engine_match   String?
+  faktur         String?
+  ktp_owner      String?
+  block_status   String?
+  etle_status    String?
+
+  bpkb_ready Boolean @default(true)
+  stnk_ready Boolean @default(true)
+}
+
+model MotorHistory {
+  id      String @id @default(uuid())
+  motorId String @unique
+  motor   Motor  @relation(fields: [motorId], references: [id], onDelete: Cascade)
+
+  previous_owners String?
+  usage_type      String?
+  service_history String?
+  last_service_km Int?
+  crash_history   String?
+  flood_history   String?
+  engine_rebuild  String?
+  modifications   String?
+  odo_status      String?
+}
+
+model MotorInspection {
+  id      String @id @default(uuid())
+  motorId String @unique
+  motor   Motor  @relation(fields: [motorId], references: [id], onDelete: Cascade)
+
+  inspectorId String?
+  inspector   User?   @relation(fields: [inspectorId], references: [id], onDelete: SetNull)
+  inspector_name String?
+
+  inspection_grade String?
+  engine_start      String?
   engine_sound      String?
   cvt_chain         String?
   electrical_lights String?
   brakes            String?
   suspension        String?
+  body_paint        String?
+  test_drive        String?
   notes             String?
+  repair_cost_est   Int?
+  body_condition    String?
+  engine_condition  String?
+}
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+model MotorPricing {
+  id      String @id @default(uuid())
+  motorId String @unique
+  motor   Motor  @relation(fields: [motorId], references: [id], onDelete: Cascade)
+
+  price           Int
+  credit_price    Int?
+  is_nego         Boolean @default(true)
+  dp_min          Int
+  tenor_options   String?
+  monthly_install Int?
+  warranty        String?
+  trade_in_avail  Boolean @default(true)
+
+  purchase_price   Int?
+  recondition_cost Int?
+  margin_target    Int?
+
+  supplierId    String?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  supplier_name String?
+
+  salesId    String?
+  sales      User?   @relation(fields: [salesId], references: [id], onDelete: SetNull)
+  sales_rep  String?
+
+  internal_notes   String?
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

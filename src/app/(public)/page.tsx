@@ -8,9 +8,14 @@ import RandomReviews from "@/components/public/RandomReviews";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const motors = await prisma.motor.findMany({
+  const motorsData: any = await prisma.motor.findMany({
     orderBy: { createdAt: "desc" },
-  });
+    include: { pricing: true, document: true, history: true, inspection: true }
+  } as any);
+
+  const motors: any[] = motorsData.map((m: any) => ({
+    ...m, ...(m.pricing||{}), ...(m.document||{}), ...(m.history||{}), ...(m.inspection||{})
+  }));
 
   return (
     <main className="min-h-screen bg-[var(--background)]">
