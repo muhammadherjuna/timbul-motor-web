@@ -5,6 +5,7 @@ import { MapPin, Phone, CheckCircle, ShieldCheck, Calendar, Gauge, Cog, ChevronL
 import InstallmentCalculator from "@/components/InstallmentCalculator";
 import BookingModal from "@/components/public/BookingModal";
 import StokImageGallery from "@/components/public/StokImageGallery";
+import { getActiveInspectionSession } from "@/lib/inspection-actions";
 
 export default async function StokDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,6 +26,8 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
     ...(motorData.pricing || {}),
     id: motorData.id
   };
+
+  const activeSession = await getActiveInspectionSession(id);
 
   const waMessage = encodeURIComponent(`Halo Timbul Motor, saya tertarik dengan ${motor.name} kode ${motor.code}. Apakah unit masih tersedia?`);
 
@@ -177,50 +180,79 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
                   <h3 className="font-bold text-green-800 flex items-center gap-2">
                     <ShieldCheck size={20} className="text-green-600" /> Laporan Inspeksi Mekanik
                   </h3>
-                  <p className="text-xs text-green-700 mt-1">Grade: <strong>{motor.inspection_grade || "Grade A"}</strong> | Inspektor: {motor.inspector_name || "Mekanik Timbul Motor"}</p>
                 </div>
               </div>
               
-              <div className="p-5 border-b border-[var(--border)]">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6">
-                  {[
-                    { label: 'Starter & Cold Start', status: motor.engine_start || "Sangat Baik" },
-                    { label: 'Suara & Performa Mesin', status: motor.engine_sound || motor.engine_condition || "Sangat Baik" },
-                    { label: 'CVT / Rantai', status: motor.cvt_chain || "Sangat Baik" },
-                    { label: 'Kelistrikan & Lampu', status: motor.electrical_lights || "Sangat Baik" },
-                    { label: 'Sistem Pengereman', status: motor.brakes || "Sangat Baik" },
-                    { label: 'Suspensi & Kaki-kaki', status: motor.suspension || "Sangat Baik" },
-                    { label: 'Cat & Bodi', status: motor.body_paint || motor.body_condition || "Sangat Baik" },
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between border-b border-[var(--muted)] pb-2">
-                      <span className="text-sm text-[var(--muted-foreground)]">{item.label}</span>
-                      {item.status === 'Sangat Baik' || item.status === 'Baik' || item.status === 'Aman' ? (
-                        <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
-                          <CheckCircle size={14} /> {item.status}
-                        </span>
+              <div className="p-5">
+                {!activeSession ? (
+                  <div className="bg-gray-50 border border-gray-200 p-6 rounded-xl text-center">
+                    <AlertTriangle className="mx-auto text-gray-400 mb-2" size={32} />
+                    <p className="font-bold text-gray-600">Belum Diperiksa</p>
+                    <p className="text-sm text-gray-500">Unit ini belum diperiksa dengan standar inspeksi terbaru.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center bg-green-50 p-4 rounded-xl border border-green-100">
+                      <div>
+                        <p className="text-xs text-green-700 font-bold uppercase">Status Kelayakan</p>
+                        <p className={`font-black text-lg ${
+                          activeSession.saleEligibility === 'LAYAK_JUAL' ? 'text-green-700' :
+                          activeSession.saleEligibility === 'PERLU_PERBAIKAN' ? 'text-yellow-700' : 'text-red-700'
+                        }`}>
+                          {activeSession.saleEligibility?.replace('_', ' ')}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-green-700 font-bold uppercase">Grade</p>
+                        <p className="font-black text-3xl text-green-700">{activeSession.grade}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-sm text-gray-500 border-b border-gray-100 pb-4">
+                      Diinspeksi oleh: <span className="font-medium text-gray-800">{activeSession.inspectorName}</span> pada {new Date(activeSession.completedAt!).toLocaleDateString('id-ID')}
+                    </div>
+
+                    <div className="space-y-4">
+                      {activeSession.items.filter((i:any) => i.status === 'CATATAN' || i.status === 'PERBAIKAN' || i.status === 'KRITIS').length === 0 ? (
+                        <div className="text-center p-4 bg-green-50 rounded-lg text-green-700">
+                          <CheckCircle className="mx-auto mb-2" size={24} />
+                          <p className="font-medium">Kondisi Sangat Baik</p>
+                          <p className="text-sm">Tidak ada catatan minus yang ditemukan.</p>
+                        </div>
                       ) : (
-                        <span className="flex items-center gap-1 text-xs font-bold text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
-                          <AlertTriangle size={14} /> {item.status}
-                        </span>
+                        <div>
+                          <p className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <Info size={16} className="text-yellow-500" /> Catatan Transparansi
+                          </p>
+                          <div className="space-y-3">
+                            {activeSession.items.filter((i:any) => i.status === 'CATATAN' || i.status === 'PERBAIKAN').map((item:any) => (
+                              <div key={item.id} className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div>
+                                    <p className="font-medium text-gray-800 text-sm">{item.templateItem.question}</p>
+                                    <p className="text-xs text-gray-500 mt-1">{item.answer}</p>
+                                    {item.notes && <p className="text-xs font-medium text-orange-600 mt-2">"{item.notes}"</p>}
+                                  </div>
+                                  <span className={`shrink-0 px-2 py-1 text-[10px] font-bold rounded-full ${
+                                    item.status === 'PERBAIKAN' ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'
+                                  }`}>
+                                    {item.status}
+                                  </span>
+                                </div>
+                                {item.evidence && item.evidence.filter((e:any) => e.isPublic).map((e:any) => (
+                                  <div key={e.id} className="mt-3">
+                                    <img src={e.storagePath} alt={e.caption || 'Foto Bukti'} className="rounded-lg border border-gray-200 w-32 h-32 object-cover" />
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {motor.notes && (
-                <div className="p-5 bg-yellow-50/50">
-                  <div className="bg-white border border-yellow-200 rounded-lg p-4 shadow-sm">
-                    <div className="text-xs font-bold text-yellow-800 mb-2 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span> 
-                      Catatan Minus (Transparansi):
-                    </div>
-                    <p className="text-sm text-yellow-900 leading-relaxed whitespace-pre-wrap">
-                      {motor.notes}
-                    </p>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             <InstallmentCalculator price={motor.price} minDp={motor.dp_min} />

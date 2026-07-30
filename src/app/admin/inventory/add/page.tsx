@@ -491,53 +491,17 @@ export default function AddMotorPage() {
 
             {/* Tab 4: Inspeksi */}
             <div data-tab="4" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 4 && "hidden"}`}>
-              <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center justify-between">
-                <span className="flex items-center gap-2"><Wrench className="text-[var(--primary)]" size={20} /> Tab 4: Laporan Inspeksi (Digital Check-Sheet)</span>
-              </h2>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b border-[var(--border)]">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[var(--muted-foreground)] uppercase">Grade Inspeksi</label>
-                    <select name="inspection_grade" className="w-full px-3 py-2 rounded-lg border border-[var(--border)] font-bold focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
-                      <option value="Grade A">Grade A (Sangat Baik)</option>
-                      <option value="Grade B">Grade B (Baik, Catatan Ringan)</option>
-                      <option value="Grade C">Grade C (Perlu Perbaikan)</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-xs font-bold text-[var(--muted-foreground)] uppercase">Nama Inspektor <span className="text-red-500">*</span></label>
-                    <input type="text" name="inspector_name" required placeholder="Nama mekanik/inspektor" className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
-                  </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center space-y-4">
+                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+                  <Wrench size={32} />
                 </div>
-
-                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-                  {[
-                    { id: 'engine_start', label: 'Starter & Cold Start' },
-                    { id: 'engine_sound', label: 'Suara & Kompresi Mesin' },
-                    { id: 'cvt_chain', label: 'Transmisi (CVT / Kopling / Rantai)' },
-                    { id: 'electrical_lights', label: 'Kelistrikan, Lampu & Aki' },
-                    { id: 'brakes', label: 'Sistem Pengereman (Kampas & Cakram)' },
-                    { id: 'suspension', label: 'Suspensi, Rangka & Kaki-kaki' },
-                    { id: 'body_paint', label: 'Kondisi Cat & Bodi Plastik' },
-                    { id: 'test_drive', label: 'Hasil Uji Jalan (Test Drive)' }
-                  ].map((item) => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-[var(--border)] rounded-lg bg-gray-50/50">
-                      <span className="text-sm font-medium mb-2 sm:mb-0">{item.label}</span>
-                      <select name={item.id} className="px-2 py-1.5 rounded border border-[var(--border)] text-xs font-medium bg-white focus:outline-none focus:border-[var(--primary)]">
-                        <option value="Belum Diperiksa">Belum Diperiksa</option>
-                        <option value="Sangat Baik">Sangat Baik</option>
-                        <option value="Baik">Baik / Normal</option>
-                        <option value="Ada Catatan Ringan">Catatan Ringan</option>
-                        <option value="Perlu Perbaikan">Perlu Perbaikan</option>
-                      </select>
-                    </div>
-                  ))}
-                  
-                  <div className="space-y-1 sm:col-span-2 mt-2 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <label className="text-sm font-bold text-yellow-900">Deskripsi Kekurangan / Catatan Perbaikan</label>
-                    <textarea name="notes" rows={2} placeholder="Contoh: Kampas rem depan tipis (sisa 20%), ban belakang botak minta ganti." className="w-full px-3 py-2 mt-1 rounded-lg border border-yellow-300 focus:outline-none focus:border-yellow-500 text-sm resize-none bg-white"></textarea>
-                  </div>
-                </div>
+                <h3 className="text-xl font-bold text-blue-900">Sistem Inspeksi Cerdas</h3>
+                <p className="text-blue-800">
+                  Pengisian form inspeksi (Checklist Cerdas) kini dilakukan setelah data unit motor berhasil disimpan ke dalam sistem. Silakan lengkapi tab lainnya dan klik "Simpan Unit Baru". 
+                </p>
+                <p className="text-sm text-blue-600">
+                  Anda akan dapat mengisi detail inspeksi pada halaman Edit Motor.
+                </p>
               </div>
             </div>
 

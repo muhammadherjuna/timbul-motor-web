@@ -68,6 +68,7 @@ model Motor {
   history    MotorHistory?
   inspection MotorInspection?
   pricing    MotorPricing?
+  inspectionSessions InspectionSession[]
 }
 
 model MotorDocument {
@@ -133,6 +134,8 @@ model MotorInspection {
   repair_cost_est   Int?
   body_condition    String?
   engine_condition  String?
+
+  archived          Boolean @default(false)
 }
 
 model MotorPricing {
@@ -172,3 +175,104 @@ model Branch {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// -----------------------------------------
+// SMART INSPECTION SYSTEM
+// -----------------------------------------
+
+model InspectionTemplate {
+  id              String   @id @default(uuid())
+  name            String
+  version         String
+  motorTypeFilter String   // all | matic | manual | sport
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  groups   InspectionTemplateGroup[]
+  sessions InspectionSession[]
+}
+
+model InspectionTemplateGroup {
+  id         String  @id @default(uuid())
+  templateId String
+  template   InspectionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  name       String
+  weight     Float
+  orderIndex Int
+
+  items InspectionTemplateItem[]
+}
+
+model InspectionTemplateItem {
+  id              String  @id @default(uuid())
+  groupId         String
+  group           InspectionTemplateGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  itemKey         String  // unique slug
+  question        String
+  possibleAnswers Json    // array: {text, status, isCritical, score}
+  applicableFor   String  // all | matic | manual | sport
+  orderIndex      Int
+
+  inspectionItems InspectionItem[]
+}
+
+model InspectionSession {
+  id          String  @id @default(uuid())
+  motorId     String
+  motor       Motor   @relation(fields: [motorId], references: [id], onDelete: Cascade)
+  templateId  String
+  template    InspectionTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+
+  status      String  // DRAFT | IN_PROGRESS | COMPLETED | APPROVED | REJECTED | REOPENED
+
+  totalScore      Float?
+  grade           String?  // A | B | C
+  hasCritical     Boolean  @default(false)
+  saleEligibility String?  // LAYAK_JUAL | PERLU_PERBAIKAN | TIDAK_LAYAK
+
+  inspectorId   String?
+  inspectorName String?
+
+  approvedById   String?
+  approvedByName String?
+  approvalNote   String?
+  approvedAt     DateTime?
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  items InspectionItem[]
+}
+
+model InspectionItem {
+  id             String  @id @default(uuid())
+  sessionId      String
+  session        InspectionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  templateItemId String
+  templateItem   InspectionTemplateItem @relation(fields: [templateItemId], references: [id], onDelete: Restrict)
+
+  answer     String
+  status     String  // NORMAL | CATATAN | PERBAIKAN | KRITIS | BELUM_DIPERIKSA | TIDAK_BERLAKU
+  isCritical Boolean @default(false)
+  score      Float?
+
+  notes       String?
+  repairNote  String?
+  repairedAt  DateTime?
+  reVerifiedAt   DateTime?
+  reVerifiedBy   String?
+
+  evidence InspectionEvidence[]
+}
+
+model InspectionEvidence {
+  id               String  @id @default(uuid())
+  inspectionItemId String
+  inspectionItem   InspectionItem @relation(fields: [inspectionItemId], references: [id], onDelete: Cascade)
+
+  storagePath String
+  isPublic    Boolean  @default(false)
+  caption     String?
+  uploadedAt  DateTime @default(now())
+}
+

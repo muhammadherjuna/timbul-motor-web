@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { updateMotor } from "@/lib/actions";
 import { getBranches } from "@/lib/branch-actions";
 import { useFormStatus } from "react-dom";
+import SmartInspectionTabClient from "./SmartInspectionTabClient";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -52,6 +53,15 @@ export default function EditMotorClient({ motor }: { motor: any }) {
   useEffect(() => {
     setIsMounted(true);
     getBranches().then(setBranches);
+    
+    // Check URL params for initial tab
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam) {
+        setActiveTab(parseInt(tabParam, 10));
+      }
+    }
   }, []);
 
   const draftKey = `editMotorDraftV2_${motor.id}`;
@@ -494,54 +504,7 @@ export default function EditMotorClient({ motor }: { motor: any }) {
             </div>
 
             <div data-tab="4" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 4 && "hidden"}`}>
-              <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center justify-between">
-                <span className="flex items-center gap-2"><Wrench className="text-[var(--primary)]" size={20} /> Tab 4: Laporan Inspeksi (Digital Check-Sheet)</span>
-              </h2>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b border-[var(--border)]">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[var(--muted-foreground)] uppercase">Grade Inspeksi</label>
-                    <select name="inspection_grade" defaultValue={motor.inspection_grade || "Grade A"} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] font-bold focus:outline-none focus:border-[var(--primary)] text-sm bg-white">
-                      <option value="Grade A">Grade A (Sangat Baik)</option>
-                      <option value="Grade B">Grade B (Baik, Catatan Ringan)</option>
-                      <option value="Grade C">Grade C (Perlu Perbaikan)</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-xs font-bold text-[var(--muted-foreground)] uppercase">Nama Inspektor <span className="text-red-500">*</span></label>
-                    <input type="text" name="inspector_name" defaultValue={motor.inspector_name || ""} required className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-                  {[
-                    { id: 'engine_start', label: 'Starter & Cold Start', val: motor.engine_start || "Sangat Baik" },
-                    { id: 'engine_sound', label: 'Suara & Kompresi Mesin', val: motor.engine_sound || motor.engine_condition || "Sangat Baik" },
-                    { id: 'cvt_chain', label: 'Transmisi (CVT / Kopling / Rantai)', val: motor.cvt_chain || "Sangat Baik" },
-                    { id: 'electrical_lights', label: 'Kelistrikan, Lampu & Aki', val: motor.electrical_lights || "Sangat Baik" },
-                    { id: 'brakes', label: 'Sistem Pengereman (Kampas & Cakram)', val: motor.brakes || "Sangat Baik" },
-                    { id: 'suspension', label: 'Suspensi, Rangka & Kaki-kaki', val: motor.suspension || "Sangat Baik" },
-                    { id: 'body_paint', label: 'Kondisi Cat & Bodi Plastik', val: motor.body_paint || motor.body_condition || "Sangat Baik" },
-                    { id: 'test_drive', label: 'Hasil Uji Jalan (Test Drive)', val: motor.test_drive || "Sangat Baik" }
-                  ].map((item) => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-[var(--border)] rounded-lg bg-gray-50/50">
-                      <span className="text-sm font-medium mb-2 sm:mb-0">{item.label}</span>
-                      <select name={item.id} defaultValue={item.val} className="px-2 py-1.5 rounded border border-[var(--border)] text-xs font-medium bg-white focus:outline-none focus:border-[var(--primary)]">
-                        <option value="Belum Diperiksa">Belum Diperiksa</option>
-                        <option value="Sangat Baik">Sangat Baik</option>
-                        <option value="Baik">Baik / Normal</option>
-                        <option value="Ada Catatan Ringan">Catatan Ringan</option>
-                        <option value="Perlu Perbaikan">Perlu Perbaikan</option>
-                      </select>
-                    </div>
-                  ))}
-                  
-                  <div className="space-y-1 sm:col-span-2 mt-2 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <label className="text-sm font-bold text-yellow-900">Deskripsi Kekurangan / Catatan Perbaikan</label>
-                    <textarea name="notes" defaultValue={motor.notes || ""} rows={2} className="w-full px-3 py-2 mt-1 rounded-lg border border-yellow-300 focus:outline-none focus:border-yellow-500 text-sm resize-none bg-white"></textarea>
-                  </div>
-                </div>
-              </div>
+              <SmartInspectionTabClient motorId={motor.id} />
             </div>
 
             <div data-tab="5" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 5 && "hidden"}`}>
