@@ -19,6 +19,26 @@ export default function AddTransactionPage() {
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [selectedMotor, setSelectedMotor] = useState<any>(null);
 
+  const formatCurrency = (value: string) => {
+    const numberString = value.replace(/[^,\d]/g, "").toString();
+    const split = numberString.split(",");
+    const sisa = split[0].length % 3;
+    let rupiah = split[0].substr(0, sisa);
+    const ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+    if (ribuan) {
+      const separator = sisa ? "." : "";
+      rupiah += separator + ribuan.join(".");
+    }
+
+    rupiah = split[1] != undefined ? rupiah + "," + split[1] : rupiah;
+    return rupiah;
+  };
+
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.target.value = formatCurrency(e.target.value);
+  };
+
   useEffect(() => {
     async function loadData() {
       setFetching(true);
@@ -49,11 +69,11 @@ export default function AddTransactionPage() {
       customerId: formData.get("customerId") as string,
       motorId: formData.get("motorId") as string,
       paymentMethod: paymentMethod,
-      totalAmount: parseInt(formData.get("totalAmount") as string) || 0,
-      dpAmount: formData.get("dpAmount") ? parseInt(formData.get("dpAmount") as string) : undefined,
+      totalAmount: parseInt((formData.get("totalAmount") as string).replace(/\./g, "")) || 0,
+      dpAmount: formData.get("dpAmount") ? parseInt((formData.get("dpAmount") as string).replace(/\./g, "")) : undefined,
       leasingProvider: formData.get("leasingProvider") as string,
       tenor: formData.get("tenor") ? parseInt(formData.get("tenor") as string) : undefined,
-      monthlyInstall: formData.get("monthlyInstall") ? parseInt(formData.get("monthlyInstall") as string) : undefined,
+      monthlyInstall: formData.get("monthlyInstall") ? parseInt((formData.get("monthlyInstall") as string).replace(/\./g, "")) : undefined,
       notes: formData.get("notes") as string,
     };
 
@@ -159,7 +179,7 @@ export default function AddTransactionPage() {
 
             <div className="space-y-1 pt-2">
               <label className="text-sm font-medium">Total Harga Kesepakatan Akhir (Rp) <span className="text-red-500">*</span></label>
-              <input name="totalAmount" type="number" required defaultValue={selectedMotor?.pricing?.price || ""} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-lg font-bold" />
+              <input name="totalAmount" type="text" required onChange={handleCurrencyChange} defaultValue={selectedMotor?.pricing?.price ? formatCurrency(selectedMotor.pricing.price.toString()) : ""} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-lg font-bold" />
             </div>
 
             {paymentMethod === "CREDIT" && (
@@ -170,7 +190,7 @@ export default function AddTransactionPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium">Uang Muka (DP) Rp</label>
-                  <input name="dpAmount" type="number" className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                  <input name="dpAmount" type="text" onChange={handleCurrencyChange} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium">Tenor (Bulan)</label>
@@ -178,7 +198,7 @@ export default function AddTransactionPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium">Angsuran per Bulan (Rp)</label>
-                  <input name="monthlyInstall" type="number" className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
+                  <input name="monthlyInstall" type="text" onChange={handleCurrencyChange} className="w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm" />
                 </div>
               </div>
             )}
