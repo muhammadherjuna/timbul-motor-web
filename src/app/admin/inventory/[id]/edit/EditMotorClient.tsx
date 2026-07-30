@@ -513,7 +513,7 @@ export default function EditMotorClient({ motor, userRole = "ADMIN" }: { motor: 
             </div>
 
             <div data-tab="4" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 4 && "hidden"}`}>
-              <SmartInspectionTabClient motorId={motor.id} isReadOnly={userRole === "ADMIN"} />
+              <SmartInspectionTabClient motorId={motor.id} isReadOnly={userRole !== "MECHANIC"} />
             </div>
 
             <div data-tab="5" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 5 && "hidden"}`}>

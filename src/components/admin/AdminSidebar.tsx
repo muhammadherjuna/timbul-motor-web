@@ -33,6 +33,9 @@ export default function AdminSidebar({ role = "ADMIN", name = "Admin" }: { role?
       if (item.href === "/admin") return { ...item, name: "Dashboard Mekanik" };
       if (item.href === "/admin/inventory") return { ...item, name: "Daftar Inspeksi", icon: ShieldCheck };
     }
+    if (role === "SUPERVISOR") {
+      if (item.href === "/admin") return { ...item, name: "Dashboard Supervisor" };
+    }
     return item;
   });
 
