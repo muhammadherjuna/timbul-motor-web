@@ -16,6 +16,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     }
   }
 
+  const roleBadgeText = role === "SUPERVISOR" ? "SUPERVISOR" : role === "MECHANIC" ? "MEKANIK" : "ADMIN";
+
   return (
     <div className="flex h-[100dvh] w-full bg-[var(--muted)] overflow-hidden">
       {/* Sidebar for Desktop */}
@@ -26,7 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {/* Mobile Header (Visible only on small screens) */}
         <header className="md:hidden h-16 bg-white border-b border-[var(--border)] flex items-center justify-between px-4">
           <Link href="/admin" className="font-black text-lg text-[var(--primary)] tracking-tight">
-            TIMBUL MOTOR
+            TIMBUL MOTOR <span className="text-[var(--accent)]">{roleBadgeText}</span>
           </Link>
           <button className="p-2 text-[var(--foreground)] bg-[var(--muted)] rounded-md">
             <Menu size={20} />

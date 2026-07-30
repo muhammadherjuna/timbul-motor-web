@@ -39,11 +39,13 @@ export default function AdminSidebar({ role = "ADMIN", name = "Admin" }: { role?
     return item;
   });
 
+  const roleBadgeText = role === "SUPERVISOR" ? "SUPERVISOR" : role === "MECHANIC" ? "MEKANIK" : "ADMIN";
+
   return (
     <aside className="w-64 bg-white border-r border-[var(--border)] h-full flex flex-col hidden md:flex">
       <div className="h-16 flex items-center px-6 border-b border-[var(--border)]">
         <Link href="/admin" className="font-black text-xl text-[var(--primary)] tracking-tight">
-          TIMBUL MOTOR <span className="text-[var(--accent)]">ADMIN</span>
+          TIMBUL MOTOR <span className="text-[var(--accent)]">{roleBadgeText}</span>
         </Link>
       </div>
 
