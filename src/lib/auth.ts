@@ -10,9 +10,9 @@ const SECRET_KEY = new TextEncoder().encode(
   process.env.JWT_SECRET || "timbul-motor-super-secret-key-2026"
 );
 
-export async function createSession() {
+export async function createSession(role: string, name: string, email: string) {
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day
-  const session = await new SignJWT({ role: "admin" })
+  const session = await new SignJWT({ role, name, email })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("1d")
@@ -43,17 +43,31 @@ export async function logout() {
   redirect("/login");
 }
 
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+
+const prisma = new PrismaClient();
+
 export async function login(formData: FormData) {
-  const email = formData.get("email");
-  const password = formData.get("password");
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-  // Hardcoded admin credentials for now (since it's a single admin system)
-  // In a real system, you'd check this against a User table in DB
-  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@timbulmotor.com";
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+  if (!email || !password) {
+    return { error: "Email dan password harus diisi!" };
+  }
 
-  if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-    await createSession();
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user || !user.password) {
+    return { error: "Email atau password salah!" };
+  }
+
+  const isValidPassword = await bcrypt.compare(password, user.password);
+
+  if (isValidPassword) {
+    await createSession(user.role, user.name, user.email);
     redirect("/admin");
   } else {
     return { error: "Email atau password salah!" };

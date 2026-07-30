@@ -33,8 +33,15 @@ const TABS = [
   { id: 7, name: "Data Internal", icon: <Lock size={18} /> },
 ];
 
-export default function EditMotorClient({ motor }: { motor: any }) {
+export default function EditMotorClient({ motor, userRole = "ADMIN" }: { motor: any, userRole?: string }) {
   const [activeTab, setActiveTab] = useState(1);
+  
+  // Filter tabs based on role
+  const visibleTabs = TABS.filter(tab => {
+    if (userRole === "MECHANIC") return tab.id === 4; // Mechanic only sees Tab 4
+    return true; // Admin and Supervisor see all tabs
+  });
+
   const [previews, setPreviews] = useState<string[]>([
     motor.image || "", 
     motor.images?.[0] || "", 
@@ -60,9 +67,11 @@ export default function EditMotorClient({ motor }: { motor: any }) {
       const tabParam = params.get('tab');
       if (tabParam) {
         setActiveTab(parseInt(tabParam, 10));
+      } else if (userRole === "MECHANIC") {
+        setActiveTab(4); // Default to tab 4 for mechanic
       }
     }
-  }, []);
+  }, [userRole]);
 
   const draftKey = `editMotorDraftV2_${motor.id}`;
 
@@ -244,7 +253,7 @@ export default function EditMotorClient({ motor }: { motor: any }) {
           <div className="bg-white rounded-xl border border-[var(--border)] shadow-sm overflow-hidden sticky top-8">
             <div className="p-3 bg-[var(--muted)]/50 border-b border-[var(--border)] font-semibold text-sm text-[var(--foreground)]">Navigasi Form</div>
             <div className="flex flex-col">
-              {TABS.map((tab) => (
+              {visibleTabs.map((tab) => (
                 <button
                   type="button"
                   key={tab.id}
@@ -504,7 +513,7 @@ export default function EditMotorClient({ motor }: { motor: any }) {
             </div>
 
             <div data-tab="4" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 4 && "hidden"}`}>
-              <SmartInspectionTabClient motorId={motor.id} />
+              <SmartInspectionTabClient motorId={motor.id} isReadOnly={userRole === "ADMIN"} />
             </div>
 
             <div data-tab="5" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 5 && "hidden"}`}>
@@ -653,24 +662,29 @@ export default function EditMotorClient({ motor }: { motor: any }) {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50 p-4 rounded-xl border border-[var(--border)]">
-              <div className="text-sm text-[var(--muted-foreground)]">
-                Langkah {activeTab} dari {TABS.length}
+            {userRole !== "MECHANIC" && (
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50 p-4 rounded-xl border border-[var(--border)]">
+                <div className="text-sm text-[var(--muted-foreground)]">
+                  Langkah {visibleTabs.findIndex(t => t.id === activeTab) + 1} dari {visibleTabs.length}
+                </div>
+                <div className="flex gap-3 w-full sm:w-auto">
+                  {visibleTabs.findIndex(t => t.id === activeTab) < visibleTabs.length - 1 ? (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const idx = visibleTabs.findIndex(t => t.id === activeTab);
+                        if (idx >= 0 && idx < visibleTabs.length - 1) setActiveTab(visibleTabs[idx + 1].id);
+                      }}
+                      className="flex-1 sm:flex-none px-6 py-2.5 rounded-lg border border-[var(--border)] bg-white font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                      Selanjutnya <ChevronRight size={18} />
+                    </button>
+                  ) : (
+                    <SubmitButton />
+                  )}
+                </div>
               </div>
-              <div className="flex gap-3 w-full sm:w-auto">
-                {activeTab < TABS.length ? (
-                  <button 
-                    type="button"
-                    onClick={() => setActiveTab(prev => Math.min(prev + 1, TABS.length))}
-                    className="flex-1 sm:flex-none px-6 py-2.5 rounded-lg border border-[var(--border)] bg-white font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
-                  >
-                    Selanjutnya <ChevronRight size={18} />
-                  </button>
-                ) : (
-                  <SubmitButton />
-                )}
-              </div>
-            </div>
+            )}
 
           </form>
         </div>

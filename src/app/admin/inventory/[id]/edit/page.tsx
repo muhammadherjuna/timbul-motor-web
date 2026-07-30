@@ -1,6 +1,8 @@
 import prisma from "@/lib/db";
 import EditMotorClient from "./EditMotorClient";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { verifySession } from "@/lib/auth";
 
 export default async function EditMotorPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -27,5 +29,14 @@ export default async function EditMotorPage({ params }: { params: Promise<{ id: 
     id: motorData.id
   };
 
-  return <EditMotorClient motor={motor} />;
+  const sessionCookie = (await cookies()).get("session")?.value;
+  let role = "ADMIN";
+  if (sessionCookie) {
+    const payload = await verifySession(sessionCookie);
+    if (payload) {
+      role = payload.role as string;
+    }
+  }
+
+  return <EditMotorClient motor={motor} userRole={role} />;
 }

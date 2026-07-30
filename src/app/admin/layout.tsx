@@ -1,12 +1,25 @@
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { Menu } from "lucide-react";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { verifySession } from "@/lib/auth";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const sessionCookie = (await cookies()).get("session")?.value;
+  let role = "ADMIN";
+  let name = "Admin";
+  if (sessionCookie) {
+    const payload = await verifySession(sessionCookie);
+    if (payload) {
+      role = payload.role as string;
+      name = payload.name as string;
+    }
+  }
+
   return (
     <div className="flex h-[100dvh] w-full bg-[var(--muted)] overflow-hidden">
       {/* Sidebar for Desktop */}
-      <AdminSidebar />
+      <AdminSidebar role={role} name={name} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">

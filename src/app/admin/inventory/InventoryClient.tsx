@@ -1,12 +1,12 @@
 "use client";
 
-import { PlusCircle, Search, Edit, Trash2, AlertTriangle, QrCode, Share2 } from "lucide-react";
+import { PlusCircle, Search, Edit, Trash2, AlertTriangle, QrCode, Share2, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import QRCodeModal from "@/components/admin/QRCodeModal";
 import { deleteMotor } from "@/lib/actions";
 
-export default function InventoryClient({ initialMotors }: { initialMotors: any[] }) {
+export default function InventoryClient({ initialMotors, userRole = "ADMIN" }: { initialMotors: any[], userRole?: string }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: "", name: "" });
   const [qrModal, setQrModal] = useState<{ isOpen: boolean; motor: any }>({ isOpen: false, motor: null });
@@ -28,16 +28,22 @@ export default function InventoryClient({ initialMotors }: { initialMotors: any[
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">Inventaris Stok</h1>
-          <p className="text-sm text-[var(--muted-foreground)]">Kelola semua data motor yang ada di dealer.</p>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+            {userRole === "MECHANIC" ? "Daftar Tugas Inspeksi" : "Inventaris Stok"}
+          </h1>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            {userRole === "MECHANIC" ? "Pilih motor yang ingin Anda periksa atau verifikasi." : "Kelola semua data motor yang ada di dealer."}
+          </p>
         </div>
-        <Link 
-          href="/admin/inventory/add" 
-          className="flex items-center gap-2 bg-[var(--primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--primary)]/90 transition-colors"
-        >
-          <PlusCircle size={18} />
-          Tambah Stok Baru
-        </Link>
+        {userRole !== "MECHANIC" && (
+          <Link 
+            href="/admin/inventory/add" 
+            className="flex items-center gap-2 bg-[var(--primary)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--primary)]/90 transition-colors"
+          >
+            <PlusCircle size={18} />
+            Tambah Stok Baru
+          </Link>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
@@ -106,26 +112,32 @@ export default function InventoryClient({ initialMotors }: { initialMotors: any[
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Link 
-                          href={`/admin/inventory/${motor.id}/finance`}
-                          className="p-1.5 text-green-600 hover:bg-green-50 rounded border border-transparent hover:border-green-200 transition-colors" 
-                          title="Buat Promosi Sosmed"
-                        >
-                          <Share2 size={18} />
+                        {userRole !== "MECHANIC" && (
+                          <>
+                            <Link 
+                              href={`/admin/inventory/${motor.id}/finance`}
+                              className="p-1.5 text-green-600 hover:bg-green-50 rounded border border-transparent hover:border-green-200 transition-colors" 
+                              title="Buat Promosi Sosmed"
+                            >
+                              <Share2 size={18} />
+                            </Link>
+                            <button 
+                              onClick={() => setQrModal({ isOpen: true, motor })}
+                              className="p-1.5 text-purple-600 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition-colors" 
+                              title="Cetak Label QR"
+                            >
+                              <QrCode size={18} />
+                            </button>
+                          </>
+                        )}
+                        <Link href={`/admin/inventory/${motor.id}/edit`} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" title={userRole === "MECHANIC" ? "Isi Form Inspeksi" : "Edit"}>
+                          {userRole === "MECHANIC" ? <Wrench size={18} /> : <Edit size={18} />}
                         </Link>
-                        <button 
-                          onClick={() => setQrModal({ isOpen: true, motor })}
-                          className="p-1.5 text-purple-600 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition-colors" 
-                          title="Cetak Label QR"
-                        >
-                          <QrCode size={18} />
-                        </button>
-                        <Link href={`/admin/inventory/${motor.id}/edit`} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Edit">
-                          <Edit size={18} />
-                        </Link>
-                        <button onClick={() => setDeleteModal({ isOpen: true, id: motor.id, name: motor.name })} className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors" title="Hapus">
-                          <Trash2 size={18} />
-                        </button>
+                        {userRole !== "MECHANIC" && (
+                          <button onClick={() => setDeleteModal({ isOpen: true, id: motor.id, name: motor.name })} className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors" title="Hapus">
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

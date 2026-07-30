@@ -12,7 +12,8 @@ model User {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
-  role      String   @default("sales") // admin, sales, mechanic
+  password  String?
+  role      String   @default("ADMIN") // ADMIN, MECHANIC, SUPERVISOR
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

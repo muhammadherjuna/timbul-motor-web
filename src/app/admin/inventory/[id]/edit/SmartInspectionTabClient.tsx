@@ -12,7 +12,7 @@ import {
 import { uploadInspectionEvidence } from "@/lib/inspection-storage";
 import { useFormStatus } from "react-dom";
 
-export default function SmartInspectionTabClient({ motorId }: { motorId: string }) {
+export default function SmartInspectionTabClient({ motorId, isReadOnly = false }: { motorId: string, isReadOnly?: boolean }) {
   const [template, setTemplate] = useState<any>(null);
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -78,7 +78,7 @@ export default function SmartInspectionTabClient({ motorId }: { motorId: string 
   };
 
   const handleAnswerSelect = (templateItemId: string, answerObj: any) => {
-    if (session && (session.status === "COMPLETED" || session.status === "APPROVED")) return;
+    if (isReadOnly || (session && (session.status === "COMPLETED" || session.status === "APPROVED"))) return;
     setAnswers(prev => ({
       ...prev,
       [templateItemId]: {
@@ -92,7 +92,7 @@ export default function SmartInspectionTabClient({ motorId }: { motorId: string 
   };
 
   const handleNoteChange = (templateItemId: string, note: string) => {
-    if (session && (session.status === "COMPLETED" || session.status === "APPROVED")) return;
+    if (isReadOnly || (session && (session.status === "COMPLETED" || session.status === "APPROVED"))) return;
     setAnswers(prev => ({
       ...prev,
       [templateItemId]: {
@@ -103,7 +103,7 @@ export default function SmartInspectionTabClient({ motorId }: { motorId: string 
   };
 
   const handleFileChange = (templateItemId: string, file: File | null) => {
-    if (session && (session.status === "COMPLETED" || session.status === "APPROVED")) return;
+    if (isReadOnly || (session && (session.status === "COMPLETED" || session.status === "APPROVED"))) return;
     if (file) {
       setEvidences(prev => ({ ...prev, [templateItemId]: file }));
     }
@@ -337,7 +337,7 @@ export default function SmartInspectionTabClient({ motorId }: { motorId: string 
             ))}
           </div>
 
-          {(session.status === "DRAFT" || session.status === "IN_PROGRESS" || session.status === "REOPENED") && (
+          {!isReadOnly && (session.status === "DRAFT" || session.status === "IN_PROGRESS" || session.status === "REOPENED") && (
             <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
               <button 
                 type="button" 
@@ -355,6 +355,16 @@ export default function SmartInspectionTabClient({ motorId }: { motorId: string 
               >
                 <Check size={18} /> {saving ? "Memproses..." : "Selesaikan Sesi"}
               </button>
+            </div>
+          )}
+
+          {isReadOnly && (
+            <div className="bg-blue-50 text-blue-700 p-4 rounded-xl border border-blue-200 mt-8 flex items-center gap-3">
+              <Info size={24} />
+              <div>
+                <p className="font-bold">Mode Hanya Baca</p>
+                <p className="text-sm">Hanya Mekanik (Tim Inspeksi) yang berwenang untuk merubah isi form ini.</p>
+              </div>
             </div>
           )}
         </div>

@@ -14,8 +14,27 @@ const menuItems = [
   { name: "Pengaturan", href: "/admin/settings", icon: Settings },
 ];
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ role = "ADMIN", name = "Admin" }: { role?: string, name?: string }) {
   const pathname = usePathname();
+
+  const filteredMenuItems = menuItems.filter(item => {
+    if (role === "SUPERVISOR") return true; // Supervisor sees all
+    if (role === "MECHANIC") {
+      // Mechanic only sees Inventaris Stok
+      return item.href === "/admin/inventory" || item.href === "/admin";
+    }
+    if (role === "ADMIN") {
+      // Admin Data sees all except Approval Inspeksi
+      return item.href !== "/admin/inspections";
+    }
+    return false;
+  }).map(item => {
+    if (role === "MECHANIC") {
+      if (item.href === "/admin") return { ...item, name: "Dashboard Mekanik" };
+      if (item.href === "/admin/inventory") return { ...item, name: "Daftar Inspeksi", icon: ShieldCheck };
+    }
+    return item;
+  });
 
   return (
     <aside className="w-64 bg-white border-r border-[var(--border)] h-full flex flex-col hidden md:flex">
@@ -29,7 +48,7 @@ export default function AdminSidebar() {
         <div className="text-xs font-bold text-[var(--muted-foreground)] mb-4 px-2 uppercase tracking-wider">
           Menu Utama
         </div>
-        {menuItems.map((item) => {
+        {filteredMenuItems.map((item) => {
           const isActive = item.href === "/admin" 
             ? pathname === "/admin" 
             : pathname === item.href || pathname.startsWith(item.href + "/");
@@ -53,10 +72,11 @@ export default function AdminSidebar() {
       <div className="p-4 border-t border-[var(--border)]">
         <div className="flex items-center gap-3 px-3 py-3">
           <div className="w-8 h-8 rounded-full bg-[var(--foreground)] text-[var(--background)] flex items-center justify-center font-bold text-sm">
-            N
+            {name ? name.charAt(0).toUpperCase() : "U"}
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-bold text-[var(--foreground)] truncate">Admin Timbul</p>
+            <p className="text-sm font-bold text-[var(--foreground)] truncate">{name}</p>
+            <p className="text-xs text-[var(--muted-foreground)] truncate">{role}</p>
             <form action={logout}>
               <button type="submit" className="text-xs text-red-500 font-medium hover:text-red-700 transition-colors flex items-center gap-1 mt-0.5">
                 <LogOut size={12} /> Keluar
