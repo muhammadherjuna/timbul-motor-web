@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, Settings, LogOut, FileText, MapPin, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Package, Settings, LogOut, FileText, MapPin, ShieldCheck, Users, Receipt } from "lucide-react";
 import { logout } from "@/lib/auth";
 
 const menuItems = [
   { name: "Ringkasan", href: "/admin", icon: LayoutDashboard },
   { name: "Inventaris Stok", href: "/admin/inventory", icon: Package },
   { name: "Approval Inspeksi", href: "/admin/inspections", icon: ShieldCheck },
+  { name: "Transaksi", href: "/admin/transactions", icon: Receipt },
+  { name: "Pelanggan", href: "/admin/customers", icon: Users },
   { name: "Laporan", href: "/admin/reports", icon: FileText },
   { name: "Cabang", href: "/admin/branches", icon: MapPin },
   { name: "Pengaturan", href: "/admin/settings", icon: Settings },

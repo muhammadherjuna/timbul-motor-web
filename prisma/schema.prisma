@@ -19,6 +19,7 @@ model User {
 
   inspections MotorInspection[]
   sales       MotorPricing[]
+  transactions Transaction[] @relation("UserTransactions")
 }
 
 model Supplier {
@@ -70,6 +71,7 @@ model Motor {
   inspection MotorInspection?
   pricing    MotorPricing?
   inspectionSessions InspectionSession[]
+  transaction Transaction?
 }
 
 model MotorDocument {
@@ -277,3 +279,49 @@ model InspectionEvidence {
   uploadedAt  DateTime @default(now())
 }
 
+// -----------------------------------------
+// SALES & TRANSACTIONS
+// -----------------------------------------
+
+model Customer {
+  id        String   @id @default(uuid())
+  nik       String?  @unique // Nomor KTP
+  name      String
+  phone     String
+  address   String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+}
+
+model Transaction {
+  id              String   @id @default(uuid())
+  invoiceNumber   String   @unique
+  date            DateTime @default(now())
+  
+  // Relasi
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  motorId         String   @unique
+  motor           Motor    @relation(fields: [motorId], references: [id], onDelete: Restrict)
+  salesId         String?
+  sales           User?    @relation("UserTransactions", fields: [salesId], references: [id], onDelete: SetNull)
+  
+  // Detail Transaksi
+  paymentMethod   String   // CASH, CREDIT
+  totalAmount     Int
+  dpAmount        Int?
+  
+  // Detail Kredit
+  leasingProvider String?
+  tenor           Int?
+  monthlyInstall  Int?
+
+  status          String   // PENDING, COMPLETED, CANCELLED
+  notes           String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
