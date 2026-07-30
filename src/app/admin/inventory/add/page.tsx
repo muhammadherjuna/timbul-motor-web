@@ -176,6 +176,15 @@ export default function AddMotorPage() {
     localStorage.removeItem("addMotorDraftV2");
   };
 
+  const handleInvalid = (e: React.FormEvent<HTMLFormElement>) => {
+    const target = e.target as HTMLElement;
+    const tabContainer = target.closest('[data-tab]');
+    if (tabContainer) {
+      const tabId = parseInt(tabContainer.getAttribute('data-tab') || '1', 10);
+      setActiveTab(tabId);
+    }
+  };
+
   const imageLabels = ["Foto Utama", "Samping Kiri", "Samping Kanan", "Mesin Kiri", "Mesin Kanan", "Speedometer"];
 
   return (
@@ -246,11 +255,12 @@ export default function AddMotorPage() {
             ref={formRef}
             onChange={handleFormChange}
             onSubmit={handleSubmit}
+            onInvalid={handleInvalid}
             className="space-y-6" 
             action={createMotor}
           >
             {/* Tab 1: Identitas Unit */}
-            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 1 && "hidden"}`}>
+            <div data-tab="1" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 1 && "hidden"}`}>
               <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center gap-2">
                 <Tag className="text-[var(--primary)]" size={20} /> Tab 1: Identitas & Spesifikasi Unit
               </h2>
@@ -329,7 +339,7 @@ export default function AddMotorPage() {
             </div>
 
             {/* Tab 2: Dokumen & Pajak */}
-            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 2 && "hidden"}`}>
+            <div data-tab="2" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 2 && "hidden"}`}>
               <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center gap-2">
                 <FileText className="text-[var(--primary)]" size={20} /> Tab 2: Legalitas & Dokumen
               </h2>
@@ -420,7 +430,7 @@ export default function AddMotorPage() {
             </div>
 
             {/* Tab 3: Riwayat Unit */}
-            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 3 && "hidden"}`}>
+            <div data-tab="3" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 3 && "hidden"}`}>
               <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center gap-2">
                 <History className="text-[var(--primary)]" size={20} /> Tab 3: Riwayat Kendaraan
               </h2>
@@ -480,7 +490,7 @@ export default function AddMotorPage() {
             </div>
 
             {/* Tab 4: Inspeksi */}
-            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 4 && "hidden"}`}>
+            <div data-tab="4" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 4 && "hidden"}`}>
               <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center justify-between">
                 <span className="flex items-center gap-2"><Wrench className="text-[var(--primary)]" size={20} /> Tab 4: Laporan Inspeksi (Digital Check-Sheet)</span>
               </h2>
@@ -532,7 +542,7 @@ export default function AddMotorPage() {
             </div>
 
             {/* Tab 5: Foto */}
-            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 5 && "hidden"}`}>
+            <div data-tab="5" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 5 && "hidden"}`}>
               <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center justify-between">
                 <span className="flex items-center gap-2"><ImageIcon className="text-[var(--primary)]" size={20} /> Tab 5: Galeri & Video</span>
                 <span className="text-xs font-normal text-blue-600 bg-blue-50 px-2 py-1 rounded">Auto-Watermark</span>
@@ -573,7 +583,7 @@ export default function AddMotorPage() {
             </div>
 
             {/* Tab 6: Harga */}
-            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 6 && "hidden"}`}>
+            <div data-tab="6" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 6 && "hidden"}`}>
               <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center gap-2">
                 <Banknote className="text-[var(--primary)]" size={20} /> Tab 6: Penjualan & Skema Kredit
               </h2>
@@ -629,7 +639,7 @@ export default function AddMotorPage() {
             </div>
 
             {/* Tab 7: Internal */}
-            <div className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 7 && "hidden"}`}>
+            <div data-tab="7" className={`bg-white p-6 rounded-xl border border-[var(--border)] shadow-sm space-y-6 ${activeTab !== 7 && "hidden"}`}>
               <h2 className="font-bold text-lg border-b border-[var(--border)] pb-2 flex items-center gap-2">
                 <Lock className="text-[var(--primary)]" size={20} /> Tab 7: Data Internal Dealer
               </h2>
