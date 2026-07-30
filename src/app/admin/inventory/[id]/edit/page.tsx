@@ -18,13 +18,13 @@ export default async function EditMotorPage({ params }: { params: Promise<{ id: 
     notFound();
   }
 
-  // Flatten the motor object so the client component (which expects flat properties) still works
   const motor: any = {
     ...motorData,
     ...(motorData.document || {}),
     ...(motorData.history || {}),
     ...(motorData.inspection || {}),
-    ...(motorData.pricing || {})
+    ...(motorData.pricing || {}),
+    id: motorData.id
   };
 
   return <EditMotorClient motor={motor} />;

@@ -14,7 +14,7 @@ export default async function Home() {
   } as any);
 
   const motors: any[] = motorsData.map((m: any) => ({
-    ...m, ...(m.pricing||{}), ...(m.document||{}), ...(m.history||{}), ...(m.inspection||{})
+    ...m, ...(m.pricing||{}), ...(m.document||{}), ...(m.history||{}), ...(m.inspection||{}), id: m.id
   }));
 
   return (

@@ -19,7 +19,8 @@ export default async function FinanceSimulatorPage({ params }: { params: Promise
     ...(motorData.document || {}),
     ...(motorData.history || {}),
     ...(motorData.inspection || {}),
-    ...(motorData.pricing || {})
+    ...(motorData.pricing || {}),
+    id: motorData.id
   };
 
   return <FinanceClient motor={motor} />;

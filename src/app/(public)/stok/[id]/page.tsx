@@ -22,7 +22,8 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
     ...(motorData.document || {}),
     ...(motorData.history || {}),
     ...(motorData.inspection || {}),
-    ...(motorData.pricing || {})
+    ...(motorData.pricing || {}),
+    id: motorData.id
   };
 
   const waMessage = encodeURIComponent(`Halo Timbul Motor, saya tertarik dengan ${motor.name} kode ${motor.code}. Apakah unit masih tersedia?`);
@@ -106,16 +107,7 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
               )}
             </div>
 
-            {motor.description && (
-              <div className="mb-8">
-                <div className="bg-orange-50/50 p-5 rounded-xl border border-orange-100 shadow-sm">
-                  <h3 className="font-bold text-orange-900 flex items-center gap-2 mb-2"><Info size={18}/> Keunggulan Unit Ini</h3>
-                  <p className="text-orange-950 text-sm leading-relaxed whitespace-pre-wrap">
-                    {motor.description}
-                  </p>
-                </div>
-              </div>
-            )}
+
 
             {/* TAB: SPESIFIKASI */}
             <div className="mb-6 bg-white border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
@@ -151,7 +143,7 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
                     <div className={`font-semibold text-sm ${motor.tax_status === "Mati" ? "text-red-600" : "text-green-700"}`}>{motor.tax_status} {motor.tax_expiry ? `(s/d ${motor.tax_expiry})` : ""}</div>
                   </div>
                   <div><div className="text-xs text-[var(--muted-foreground)]">Plat Nomor</div>
-                    <div className="font-semibold text-sm">{motor.plate_number ? motor.plate_number.replace(/([a-zA-Z]+) (\d+) ([a-zA-Z]+)/, "$1 ${maskString('$2', 1)} XX") : "Rahasia"} ({motor.plate_area || "-"})</div>
+                    <div className="font-semibold text-sm">{motor.plate_number ? motor.plate_number.replace(/([a-zA-Z]+) (\d+) ([a-zA-Z]+)/, (m:string, p1:string, p2:string, p3:string) => `${p1} ${p2.charAt(0) + '*'.repeat(p2.length > 1 ? p2.length - 1 : 3)} XX`) : "Rahasia"} ({motor.plate_area || "-"})</div>
                   </div>
                 </div>
                 

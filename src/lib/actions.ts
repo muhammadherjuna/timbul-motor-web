@@ -71,7 +71,7 @@ const parseFormData = (formData: FormData) => {
   
   // Tab 5 (Motor Core - Medias)
   const videoUrl = formData.get("videoUrl") as string;
-  const description = formData.get("description") as string;
+  const description = formData.get("description") as string || "-";
 
   // Tab 6 (MotorPricing)
   const status = formData.get("status") as string;
@@ -193,9 +193,13 @@ export async function updateMotor(id: string, formData: FormData) {
 }
 
 export async function deleteMotor(id: string) {
-  await prisma.motor.delete({
-    where: { id },
-  });
+  try {
+    await prisma.motor.delete({
+      where: { id },
+    });
+  } catch (error) {
+    console.log("Motor not found or already deleted:", error);
+  }
   
   revalidatePath("/admin/inventory");
   revalidatePath("/stok");
