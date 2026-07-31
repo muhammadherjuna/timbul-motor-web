@@ -14,6 +14,7 @@ function StokContent({ initialMotors }: { initialMotors: any[] }) {
   const [brandFilter, setBrandFilter] = useState(initialBrand);
   const [priceFilter, setPriceFilter] = useState(initialPrice);
   const [typeFilter, setTypeFilter] = useState("Semua");
+  const [statusFilter, setStatusFilter] = useState("Semua");
   const [sortBy, setSortBy] = useState("Terbaru Masuk");
   
   const [compareIds, setCompareIds] = useState<string[]>([]);
@@ -41,6 +42,11 @@ function StokContent({ initialMotors }: { initialMotors: any[] }) {
       result = result.filter(m => m.type.toLowerCase() === typeFilter.toLowerCase());
     }
 
+    // Filter Status
+    if (statusFilter !== "Semua") {
+      result = result.filter(m => m.status === statusFilter);
+    }
+
     // Sorting
     if (sortBy === "Harga Terendah") {
       result.sort((a, b) => a.price - b.price);
@@ -59,7 +65,7 @@ function StokContent({ initialMotors }: { initialMotors: any[] }) {
     }
 
     return result;
-  }, [brandFilter, priceFilter, typeFilter, sortBy, initialMotors]);
+  }, [brandFilter, priceFilter, typeFilter, statusFilter, sortBy, initialMotors]);
 
   const handleCompareToggle = (id: string) => {
     setCompareIds(prev => {
@@ -147,6 +153,25 @@ function StokContent({ initialMotors }: { initialMotors: any[] }) {
                   ))}
                 </div>
               </div>
+
+              <div>
+                <label className="block text-sm font-bold text-[var(--foreground)] mb-3">Status Motor</label>
+                <div className="space-y-2">
+                  {['Semua', 'Tersedia', 'Sedang Dipesan', 'Terjual'].map(status => (
+                    <label key={status} className="flex items-center gap-2 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="status" 
+                        value={status}
+                        checked={statusFilter === status}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer" 
+                      />
+                      {status}
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
             
             <button 
@@ -186,6 +211,7 @@ function StokContent({ initialMotors }: { initialMotors: any[] }) {
                   setBrandFilter("Semua");
                   setPriceFilter("Semua");
                   setTypeFilter("Semua");
+                  setStatusFilter("Semua");
                 }}
                 className="bg-white border-2 border-[var(--primary)] text-[var(--primary)] px-6 py-2 rounded-lg font-bold hover:bg-[var(--primary)]/5 transition-colors"
               >
