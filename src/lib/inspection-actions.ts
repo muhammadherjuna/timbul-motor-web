@@ -2,15 +2,34 @@
 
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { SCORE_MAP } from "./inspection-constants";
+import { ItemAnswerStatus } from "@prisma/client";
 
-export async function getInspectionTemplate(motorType: string = "all") {
-  return await prisma.inspectionTemplate.findFirst({
-    where: { isActive: true }, // Ideally filter by motorTypeFilter but 'all' is fine for now
+export async function getInspectionPackage(packageId?: string) {
+  if (packageId) {
+    return await prisma.inspectionPackage.findUnique({
+      where: { id: packageId, isActive: true },
+      include: {
+        categories: {
+          orderBy: { orderIndex: 'asc' },
+          include: {
+            items: {
+              where: { isActive: true },
+              orderBy: { orderIndex: 'asc' }
+            }
+          }
+        }
+      }
+    });
+  }
+  return await prisma.inspectionPackage.findFirst({
+    where: { isActive: true, isDefault: true },
     include: {
-      groups: {
+      categories: {
         orderBy: { orderIndex: 'asc' },
         include: {
           items: {
+            where: { isActive: true },
             orderBy: { orderIndex: 'asc' }
           }
         }
@@ -19,23 +38,48 @@ export async function getInspectionTemplate(motorType: string = "all") {
   });
 }
 
-export async function createInspectionSession(motorId: string, templateId: string, inspectorName: string = "Admin") {
+export async function createInspectionSession(motorId: string, packageId: string, inspectorName: string = "Admin") {
+  // Ambil struktur paket untuk di-snapshot
+  const pkg = await prisma.inspectionPackage.findUnique({
+    where: { id: packageId },
+    include: {
+      categories: {
+        include: { items: { where: { isActive: true } } }
+      }
+    }
+  });
+
+  if (!pkg) throw new Error("Package not found");
+
   const session = await prisma.inspectionSession.create({
     data: {
       motorId,
-      templateId,
+      packageId,
       status: "DRAFT",
       inspectorName,
+      snapshot: {
+        create: pkg.categories.flatMap(cat => 
+          cat.items.map(item => ({
+            itemKey: item.itemKey,
+            question: item.question,
+            categoryName: cat.name,
+            originalWeight: item.weight,
+            isSafetyItem: item.isSafetyItem,
+            isCriticalItem: item.isCriticalItem,
+            orderIndex: item.orderIndex
+          }))
+        )
+      }
     }
   });
+  
   revalidatePath(`/admin/inventory/${motorId}/edit`);
   return session;
 }
 
 export async function saveInspectionDraft(sessionId: string, answers: any[]) {
-  // answers format: [{ templateItemId: "...", answer: "...", status: "...", isCritical: boolean, score: number, notes: "..." }]
+  // answers format: [{ packageItemId: "...", answer: "...", status: "...", notes: "..." }]
   
-  // First clear existing items for this session to keep it simple, or upsert.
   await prisma.inspectionItem.deleteMany({
     where: { sessionId }
   });
@@ -44,11 +88,10 @@ export async function saveInspectionDraft(sessionId: string, answers: any[]) {
     await prisma.inspectionItem.createMany({
       data: answers.map(a => ({
         sessionId,
-        templateItemId: a.templateItemId,
+        packageItemId: a.packageItemId,
         answer: a.answer,
-        status: a.status,
-        isCritical: a.isCritical,
-        score: a.score,
+        status: a.status as ItemAnswerStatus,
+        score: SCORE_MAP[a.status as ItemAnswerStatus] ?? null,
         notes: a.notes,
       }))
     });
@@ -67,35 +110,73 @@ export async function completeInspectionSession(sessionId: string) {
     where: { id: sessionId },
     include: { 
       items: {
-        include: { templateItem: { include: { group: true } } }
+        include: { packageItem: true }
       },
-      template: { include: { groups: true } }
+      snapshot: true,
+      package: {
+        include: { categories: true }
+      }
     }
   });
 
   if (!session) throw new Error("Session not found");
 
+  const snapshotItems = session.snapshot;
   const items = session.items;
-  const groups = session.template.groups;
-
-  const hasCritical = items.some(i => i.isCritical && i.status === 'KRITIS');
-  
-  const scoredItems = items.filter(i => i.score !== null);
   
   let totalScore = 0;
-  for (const group of groups) {
-    const groupItems = scoredItems.filter(i => i.templateItem.groupId === group.id);
-    if (groupItems.length === 0) continue;
-    const groupAvg = groupItems.reduce((s, i) => s + i.score!, 0) / groupItems.length;
-    totalScore += (groupAvg * group.weight) / 100;
+  let hasCritical = false;
+
+  for (const category of session.package.categories) {
+    // Cari snapshot yang berada di kategori ini
+    const categorySnapshots = snapshotItems.filter(s => s.categoryName === category.name);
+    if (categorySnapshots.length === 0) continue;
+
+    // Hitung total bobot asli dari snapshot kategori ini
+    const activeItemsWeightSum = categorySnapshots.reduce((sum, s) => sum + s.originalWeight, 0);
+    
+    let categoryScore = 0;
+
+    for (const snap of categorySnapshots) {
+      // Normalisasi proporsional
+      const normalizedWeight = (snap.originalWeight / activeItemsWeightSum) * 100;
+
+      // Cari jawaban user untuk item ini
+      // Di DB kita menyimpan relasi lewat packageItemId, dan packageItem punya itemKey
+      const answeredItem = items.find(i => i.packageItem.itemKey === snap.itemKey);
+      
+      const score = answeredItem?.score ?? 0;
+      const status = answeredItem?.status ?? ItemAnswerStatus.BELUM_DIPERIKSA;
+
+      if ((snap.isSafetyItem || snap.isCriticalItem) && (
+        status === ItemAnswerStatus.RUSAK || 
+        status === ItemAnswerStatus.PERLU_PERBAIKAN ||
+        status === ItemAnswerStatus.PERLU_GANTI ||
+        status === ItemAnswerStatus.TIDAK_LENGKAP
+      )) {
+        hasCritical = true;
+      }
+
+      const itemScore = (score * normalizedWeight) / 100;
+      categoryScore += itemScore;
+    }
+
+    const categoryFinalScore = (categoryScore * category.weight) / 100;
+    totalScore += categoryFinalScore;
   }
 
-  const grade = hasCritical ? 'C' :
-                totalScore >= 90 ? 'A' :
-                totalScore >= 75 ? 'B' : 'C';
+  let grade = 'D';
+  if (totalScore >= 90) grade = 'A';
+  else if (totalScore >= 75) grade = 'B';
+  else if (totalScore >= 60) grade = 'C';
 
-  const saleEligibility = hasCritical ? 'TIDAK_LAYAK' :
-                          grade === 'C' ? 'PERLU_PERBAIKAN' : 'LAYAK_JUAL';
+  // Safety Limiter
+  if (hasCritical && (grade === 'A' || grade === 'B')) {
+    grade = 'C';
+  }
+
+  const saleEligibility = hasCritical ? 'PERLU_PERBAIKAN' :
+                          grade === 'D' ? 'TIDAK_LAYAK' : 'LAYAK_JUAL';
 
   await prisma.inspectionSession.update({
     where: { id: sessionId },
@@ -123,12 +204,6 @@ export async function approveInspectionSession(sessionId: string, approvedByName
       approvalNote: note,
       approvedAt: new Date()
     }
-  });
-  
-  // Mark old inspection as archived
-  await prisma.motorInspection.updateMany({
-    where: { motorId: session.motorId },
-    data: { archived: true }
   });
 
   revalidatePath(`/admin/inventory/${session.motorId}/edit`);
@@ -179,10 +254,11 @@ export async function getActiveInspectionSession(motorId: string) {
     include: {
       items: {
         include: {
-          templateItem: { include: { group: true } },
+          packageItem: { include: { category: true } },
           evidence: true
         }
-      }
+      },
+      snapshot: true
     }
   });
 }
@@ -194,13 +270,14 @@ export async function getLatestInspectionSession(motorId: string) {
     include: {
       items: {
         include: {
-          templateItem: { include: { group: true } },
+          packageItem: { include: { category: true } },
           evidence: true
         }
       },
-      template: {
+      snapshot: true,
+      package: {
         include: {
-          groups: {
+          categories: {
             orderBy: { orderIndex: 'asc' },
             include: {
               items: {

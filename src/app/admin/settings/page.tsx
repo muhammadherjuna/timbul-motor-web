@@ -1,7 +1,8 @@
 "use client";
 
-import { Save, Building2, Phone, MapPin, User, Lock, CheckCircle2 } from "lucide-react";
+import { Save, Building2, Phone, MapPin, User, Lock, CheckCircle2, ClipboardList, ChevronRight, Settings2 } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function SettingsPage() {
   const [showToast, setShowToast] = useState(false);
@@ -30,6 +31,34 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-[var(--foreground)]">Pengaturan Sistem</h1>
         <p className="text-sm text-[var(--muted-foreground)]">Sesuaikan informasi dealer dan profil akun Anda.</p>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <Link href="/admin/settings/inspections">
+          <div className="bg-white rounded-xl border border-blue-200 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-center gap-2 group cursor-pointer h-full">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 shrink-0">
+                  <ClipboardList size={20} />
+                </div>
+                <h2 className="font-bold text-lg text-gray-800">Paket Inspeksi</h2>
+              </div>
+              <ChevronRight className="text-gray-300 group-hover:text-blue-500 transition-colors" />
+            </div>
+            <p className="text-sm text-gray-500">Kelola paket inspeksi, kategori, dan pengaturan form pemeriksaan motor (Smart Inspection).</p>
+          </div>
+        </Link>
+        <div className="bg-white rounded-xl border border-[var(--border)] shadow-sm p-5 flex flex-col justify-center gap-2 opacity-50 cursor-not-allowed">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500 shrink-0">
+                <Settings2 size={20} />
+              </div>
+              <h2 className="font-bold text-lg text-gray-600">Preferensi Web</h2>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500">Warna tema, logo, dan pengaturan tampilan publik (Akan datang).</p>
+        </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">

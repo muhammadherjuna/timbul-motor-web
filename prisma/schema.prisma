@@ -183,38 +183,51 @@ model Branch {
 // SMART INSPECTION SYSTEM
 // -----------------------------------------
 
-model InspectionTemplate {
-  id              String   @id @default(uuid())
-  name            String
-  version         String
-  motorTypeFilter String   // all | matic | manual | sport
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-
-  groups   InspectionTemplateGroup[]
-  sessions InspectionSession[]
+enum ItemAnswerStatus {
+  NORMAL
+  PERLU_PERBAIKAN
+  RUSAK
+  PERLU_GANTI
+  LENGKAP
+  TIDAK_LENGKAP
+  BELUM_DIPERIKSA
+  TIDAK_BERLAKU
 }
 
-model InspectionTemplateGroup {
+model InspectionPackage {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  categories InspectionCategory[]
+  sessions   InspectionSession[]
+}
+
+model InspectionCategory {
   id         String  @id @default(uuid())
-  templateId String
-  template   InspectionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  packageId  String
+  package    InspectionPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
   name       String
   weight     Float
   orderIndex Int
 
-  items InspectionTemplateItem[]
+  items InspectionPackageItem[]
 }
 
-model InspectionTemplateItem {
-  id              String  @id @default(uuid())
-  groupId         String
-  group           InspectionTemplateGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  itemKey         String  // unique slug
-  question        String
-  possibleAnswers Json    // array: {text, status, isCritical, score}
-  applicableFor   String  // all | matic | manual | sport
-  orderIndex      Int
+model InspectionPackageItem {
+  id             String  @id @default(uuid())
+  categoryId     String
+  category       InspectionCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  itemKey        String  // unique slug
+  question       String
+  weight         Float
+  isSafetyItem   Boolean @default(false)
+  isCriticalItem Boolean @default(false)
+  isActive       Boolean @default(true)
+  orderIndex     Int
 
   inspectionItems InspectionItem[]
 }
@@ -223,13 +236,13 @@ model InspectionSession {
   id          String  @id @default(uuid())
   motorId     String
   motor       Motor   @relation(fields: [motorId], references: [id], onDelete: Cascade)
-  templateId  String
-  template    InspectionTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  packageId   String
+  package     InspectionPackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
 
   status      String  // DRAFT | IN_PROGRESS | COMPLETED | APPROVED | REJECTED | REOPENED
 
   totalScore      Float?
-  grade           String?  // A | B | C
+  grade           String?  // A | B | C | D
   hasCritical     Boolean  @default(false)
   saleEligibility String?  // LAYAK_JUAL | PERLU_PERBAIKAN | TIDAK_LAYAK
 
@@ -244,19 +257,34 @@ model InspectionSession {
   startedAt   DateTime  @default(now())
   completedAt DateTime?
 
-  items InspectionItem[]
+  items    InspectionItem[]
+  snapshot InspectionSessionItemSnapshot[]
+}
+
+model InspectionSessionItemSnapshot {
+  id             String  @id @default(uuid())
+  sessionId      String
+  session        InspectionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  // Frozen data
+  itemKey        String
+  question       String
+  categoryName   String
+  originalWeight Float
+  isSafetyItem   Boolean
+  isCriticalItem Boolean
+  orderIndex     Int
 }
 
 model InspectionItem {
   id             String  @id @default(uuid())
   sessionId      String
   session        InspectionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  templateItemId String
-  templateItem   InspectionTemplateItem @relation(fields: [templateItemId], references: [id], onDelete: Restrict)
+  packageItemId  String
+  packageItem    InspectionPackageItem @relation(fields: [packageItemId], references: [id], onDelete: Restrict)
 
-  answer     String
-  status     String  // NORMAL | CATATAN | PERBAIKAN | KRITIS | BELUM_DIPERIKSA | TIDAK_BERLAKU
-  isCritical Boolean @default(false)
+  answer     String?
+  status     ItemAnswerStatus @default(BELUM_DIPERIKSA)
   score      Float?
 
   notes       String?

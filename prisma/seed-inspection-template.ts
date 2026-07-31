@@ -2,205 +2,91 @@ const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('Seeding Inspection Template...')
-  
-  // Clean up old templates if needed (uncomment for reset)
-  // await prisma.inspectionTemplate.deleteMany({})
+  console.log('Seeding Inspection Packages...')
 
-  const template = await prisma.inspectionTemplate.create({
+  await prisma.inspectionSessionItemSnapshot.deleteMany({})
+  await prisma.inspectionItem.deleteMany({})
+  await prisma.inspectionSession.deleteMany({})
+  await prisma.inspectionPackageItem.deleteMany({})
+  await prisma.inspectionCategory.deleteMany({})
+  await prisma.inspectionPackage.deleteMany({})
+
+  // PAKET 1: Matic Standar
+  await prisma.inspectionPackage.create({
     data: {
-      name: 'Standar Inspeksi Timbul Motor 2026',
-      version: '1.0.0',
-      motorTypeFilter: 'all',
-      isActive: true,
-      groups: {
+      name: 'Paket Matic Standar',
+      description: 'Standar inspeksi khusus untuk motor matic.',
+      isDefault: true,
+      categories: {
         create: [
           {
             name: 'Mesin & Performa',
-            weight: 25,
+            weight: 30,
             orderIndex: 1,
             items: {
               create: [
-                {
-                  itemKey: 'engine_start',
-                  question: 'Kondisi mesin saat distart (Dingin & Panas)',
-                  applicableFor: 'all',
-                  orderIndex: 1,
-                  possibleAnswers: [
-                    { text: 'Hidup normal, responsif, stasioner stabil', status: 'NORMAL', isCritical: false, score: 100 },
-                    { text: 'Hidup tapi stasioner agak naik turun / getar', status: 'CATATAN', isCritical: false, score: 75 },
-                    { text: 'Susah distarter, perlu gas ditahan / beberapa kali kick', status: 'PERBAIKAN', isCritical: false, score: 40 },
-                    { text: 'Mati / tidak bisa dihidupkan sama sekali', status: 'KRITIS', isCritical: true, score: 0 }
-                  ]
-                },
-                {
-                  itemKey: 'engine_sound',
-                  question: 'Suara Mesin',
-                  applicableFor: 'all',
-                  orderIndex: 2,
-                  possibleAnswers: [
-                    { text: 'Halus, normal sesuai standar pabrik', status: 'NORMAL', isCritical: false, score: 100 },
-                    { text: 'Ada sedikit suara kasar di RPM tertentu', status: 'CATATAN', isCritical: false, score: 75 },
-                    { text: 'Suara kasar / ngelitik / kletek-kletek', status: 'PERBAIKAN', isCritical: false, score: 40 },
-                    { text: 'Suara sangat kasar seperti piston/stang seher aus', status: 'KRITIS', isCritical: true, score: 0 }
-                  ]
-                }
+                { itemKey: 'matic_suara_mesin', question: 'Suara Mesin & Klep', weight: 12, orderIndex: 1 },
+                { itemKey: 'matic_tarikan', question: 'Tarikan / Akselerasi', weight: 10, orderIndex: 2 },
+                { itemKey: 'matic_knalpot', question: 'Knalpot & Asap', weight: 8, orderIndex: 3 },
               ]
             }
           },
           {
-            name: 'Sistem Transmisi (Matic / CVT)',
-            weight: 10,
+            name: 'Sistem Transmisi (CVT)',
+            weight: 20,
             orderIndex: 2,
             items: {
               create: [
-                {
-                  itemKey: 'cvt_sound',
-                  question: 'Suara Area CVT (Khusus Matic)',
-                  applicableFor: 'matic',
-                  orderIndex: 1,
-                  possibleAnswers: [
-                    { text: 'Halus, tidak ada suara gredek / mendecit', status: 'NORMAL', isCritical: false, score: 100 },
-                    { text: 'Gredek ringan saat tarikan awal', status: 'CATATAN', isCritical: false, score: 75 },
-                    { text: 'Suara mendecit kencang / gredek parah', status: 'PERBAIKAN', isCritical: false, score: 40 },
-                    { text: 'Tidak Berlaku (Bukan Matic)', status: 'TIDAK_BERLAKU', isCritical: false, score: null }
-                  ]
-                }
-              ]
-            }
-          },
-          {
-            name: 'Sistem Transmisi (Manual / Kopling)',
-            weight: 10,
-            orderIndex: 3,
-            items: {
-              create: [
-                {
-                  itemKey: 'gear_shift',
-                  question: 'Perpindahan Gigi & Kopling (Manual/Sport)',
-                  applicableFor: 'manual',
-                  orderIndex: 1,
-                  possibleAnswers: [
-                    { text: 'Halus, persneling presisi, kopling tidak selip', status: 'NORMAL', isCritical: false, score: 100 },
-                    { text: 'Kopling agak keras / gigi agak keras', status: 'CATATAN', isCritical: false, score: 75 },
-                    { text: 'Kopling selip / gigi susah masuk atau sering loncat', status: 'PERBAIKAN', isCritical: false, score: 40 },
-                    { text: 'Transmisi jebol / tidak bisa oper gigi', status: 'KRITIS', isCritical: true, score: 0 },
-                    { text: 'Tidak Berlaku (Matic)', status: 'TIDAK_BERLAKU', isCritical: false, score: null }
-                  ]
-                }
+                { itemKey: 'matic_vbelt', question: 'Kondisi V-Belt & Roller', weight: 10, orderIndex: 1 },
+                { itemKey: 'matic_suara_cvt', question: 'Suara CVT (Gredek/Halus)', weight: 10, orderIndex: 2 },
               ]
             }
           },
           {
             name: 'Sistem Rem & Roda',
             weight: 15,
-            orderIndex: 4,
+            orderIndex: 3,
             items: {
               create: [
-                {
-                  itemKey: 'brake_front',
-                  question: 'Fungsi Rem Depan',
-                  applicableFor: 'all',
-                  orderIndex: 1,
-                  possibleAnswers: [
-                    { text: 'Pakem, handel rem normal, tidak bocor', status: 'NORMAL', isCritical: false, score: 100 },
-                    { text: 'Agak dalam / kampas mulai tipis', status: 'CATATAN', isCritical: false, score: 75 },
-                    { text: 'Rem blong / master rem bocor / macet', status: 'KRITIS', isCritical: true, score: 0 }
-                  ]
-                },
-                {
-                  itemKey: 'brake_rear',
-                  question: 'Fungsi Rem Belakang',
-                  applicableFor: 'all',
-                  orderIndex: 2,
-                  possibleAnswers: [
-                    { text: 'Pakem, handel/pedal normal, tidak bocor', status: 'NORMAL', isCritical: false, score: 100 },
-                    { text: 'Agak dalam / kampas mulai tipis', status: 'CATATAN', isCritical: false, score: 75 },
-                    { text: 'Rem blong / master rem bocor / macet', status: 'KRITIS', isCritical: true, score: 0 }
-                  ]
-                }
+                { itemKey: 'matic_rem', question: 'Fungsi Rem (Depan & Belakang)', weight: 7, isSafetyItem: true, orderIndex: 1 },
+                { itemKey: 'matic_ban', question: 'Ketebalan & Kondisi Ban', weight: 5, isSafetyItem: true, orderIndex: 2 },
+                { itemKey: 'matic_suspensi', question: 'Suspensi & Velg', weight: 3, orderIndex: 3 },
               ]
             }
           },
           {
             name: 'Rangka & Bodi',
-            weight: 20,
-            orderIndex: 5,
+            weight: 15,
+            orderIndex: 4,
             items: {
               create: [
-                {
-                  itemKey: 'chassis_condition',
-                  question: 'Kondisi Rangka / Sasis',
-                  applicableFor: 'all',
-                  orderIndex: 1,
-                  possibleAnswers: [
-                    { text: 'Lurus, center, tidak ada karat keropos', status: 'NORMAL', isCritical: false, score: 100 },
-                    { text: 'Ada karat permukaan (wajar pemakaian)', status: 'CATATAN', isCritical: false, score: 75 },
-                    { text: 'Keropos tembus / bengkok (bekas tabrak)', status: 'KRITIS', isCritical: true, score: 0 }
-                  ]
-                },
-                {
-                  itemKey: 'body_paint',
-                  question: 'Kondisi Bodi & Cat',
-                  applicableFor: 'all',
-                  orderIndex: 2,
-                  possibleAnswers: [
-                    { text: 'Mulus, original, klip utuh', status: 'NORMAL', isCritical: false, score: 100 },
-                    { text: 'Lecet pemakaian / baret halus', status: 'CATATAN', isCritical: false, score: 75 },
-                    { text: 'Pecah / dudukan baut patah / cat kusam parah', status: 'PERBAIKAN', isCritical: false, score: 40 }
-                  ]
-                }
+                { itemKey: 'matic_rangka', question: 'Kelurusan Rangka (Sasis)', weight: 10, isSafetyItem: true, orderIndex: 1 },
+                { itemKey: 'matic_bodi', question: 'Kondisi Bodi & Cat', weight: 5, orderIndex: 2 },
               ]
             }
           },
           {
             name: 'Kelistrikan & Lampu',
-            weight: 15,
-            orderIndex: 6,
+            weight: 10,
+            orderIndex: 5,
             items: {
               create: [
-                {
-                  itemKey: 'electrical_lights',
-                  question: 'Sistem Penerangan & Klakson',
-                  applicableFor: 'all',
-                  orderIndex: 1,
-                  possibleAnswers: [
-                    { text: 'Semua lampu & klakson hidup normal', status: 'NORMAL', isCritical: false, score: 100 },
-                    { text: 'Ada 1-2 lampu mati (misal sein/senja)', status: 'PERBAIKAN', isCritical: false, score: 40 },
-                    { text: 'Mati total / kiprok jebol / klakson mati total', status: 'KRITIS', isCritical: true, score: 0 }
-                  ]
-                },
-                {
-                  itemKey: 'speedometer',
-                  question: 'Fungsi Speedometer & Indikator',
-                  applicableFor: 'all',
-                  orderIndex: 2,
-                  possibleAnswers: [
-                    { text: 'Normal, ODO jalan, indikator bensin akurat', status: 'NORMAL', isCritical: false, score: 100 },
-                    { text: 'Lampu backlight mati / kaca retak rambut', status: 'CATATAN', isCritical: false, score: 75 },
-                    { text: 'Mati total / kabel putus / indikator bensin error', status: 'PERBAIKAN', isCritical: false, score: 40 }
-                  ]
-                }
+                { itemKey: 'matic_starter', question: 'Fungsi Starter & Aki', weight: 4, orderIndex: 1 },
+                { itemKey: 'matic_lampu', question: 'Lampu (Depan, Belakang, Sein)', weight: 4, isSafetyItem: true, orderIndex: 2 },
+                { itemKey: 'matic_speedo', question: 'Speedometer & Indikator', weight: 2, orderIndex: 3 },
               ]
             }
           },
           {
-            name: 'Uji Jalan (Test Drive)',
-            weight: 15,
-            orderIndex: 7,
+            name: 'Dokumen & Surat',
+            weight: 10,
+            orderIndex: 6,
             items: {
               create: [
-                {
-                  itemKey: 'test_drive_feel',
-                  question: 'Handling & Kestabilan (Test Jalan)',
-                  applicableFor: 'all',
-                  orderIndex: 1,
-                  possibleAnswers: [
-                    { text: 'Stabil, lepas tangan tidak lari, handling mantap', status: 'NORMAL', isCritical: false, score: 100 },
-                    { text: 'Ada sedikit limbung / komstir agak kencang', status: 'CATATAN', isCritical: false, score: 75 },
-                    { text: 'Lari ke kiri/kanan parah, tidak aman dikendarai', status: 'KRITIS', isCritical: true, score: 0 }
-                  ]
-                }
+                { itemKey: 'matic_bpkb', question: 'BPKB & Faktur', weight: 4, isCriticalItem: true, orderIndex: 1 },
+                { itemKey: 'matic_stnk', question: 'Status STNK & Pajak', weight: 3, orderIndex: 2 },
+                { itemKey: 'matic_nosin', question: 'Kecocokan No. Rangka & Mesin', weight: 2, isCriticalItem: true, orderIndex: 3 },
+                { itemKey: 'matic_kunci', question: 'Kunci Cadangan', weight: 1, orderIndex: 4 },
               ]
             }
           }
@@ -209,15 +95,100 @@ async function main() {
     }
   })
 
-  console.log('Template created with ID:', template.id)
+  // PAKET 2: Sport & Bebek (Manual)
+  await prisma.inspectionPackage.create({
+    data: {
+      name: 'Paket Sport & Bebek (Manual)',
+      description: 'Standar inspeksi khusus untuk motor dengan transmisi manual / kopling.',
+      isDefault: false,
+      categories: {
+        create: [
+          {
+            name: 'Mesin & Performa',
+            weight: 30,
+            orderIndex: 1,
+            items: {
+              create: [
+                { itemKey: 'manual_suara_mesin', question: 'Suara Mesin & Klep', weight: 10, orderIndex: 1 },
+                { itemKey: 'manual_tarikan', question: 'Tarikan / Akselerasi', weight: 8, orderIndex: 2 },
+                { itemKey: 'manual_radiator', question: 'Radiator & Sistem Pendingin', weight: 6, orderIndex: 3 },
+                { itemKey: 'manual_knalpot', question: 'Knalpot & Asap', weight: 6, orderIndex: 4 },
+              ]
+            }
+          },
+          {
+            name: 'Transmisi & Kopling',
+            weight: 20,
+            orderIndex: 2,
+            items: {
+              create: [
+                { itemKey: 'manual_gigi', question: 'Perpindahan Gigi', weight: 8, orderIndex: 1 },
+                { itemKey: 'manual_kopling', question: 'Kondisi Kopling (Otomatis/Manual)', weight: 6, orderIndex: 2 },
+                { itemKey: 'manual_rantai', question: 'Rantai & Gear Set', weight: 6, orderIndex: 3 },
+              ]
+            }
+          },
+          {
+            name: 'Sistem Rem & Roda',
+            weight: 15,
+            orderIndex: 3,
+            items: {
+              create: [
+                { itemKey: 'manual_rem', question: 'Fungsi Rem (Depan & Belakang)', weight: 7, isSafetyItem: true, orderIndex: 1 },
+                { itemKey: 'manual_ban', question: 'Ketebalan & Kondisi Ban', weight: 5, isSafetyItem: true, orderIndex: 2 },
+                { itemKey: 'manual_suspensi', question: 'Suspensi & Velg', weight: 3, orderIndex: 3 },
+              ]
+            }
+          },
+          {
+            name: 'Rangka & Bodi',
+            weight: 15,
+            orderIndex: 4,
+            items: {
+              create: [
+                { itemKey: 'manual_rangka', question: 'Kelurusan Rangka (Sasis)', weight: 10, isSafetyItem: true, orderIndex: 1 },
+                { itemKey: 'manual_bodi', question: 'Kondisi Bodi & Tangki', weight: 5, orderIndex: 2 },
+              ]
+            }
+          },
+          {
+            name: 'Kelistrikan & Lampu',
+            weight: 10,
+            orderIndex: 5,
+            items: {
+              create: [
+                { itemKey: 'manual_starter', question: 'Fungsi Starter & Aki', weight: 4, orderIndex: 1 },
+                { itemKey: 'manual_lampu', question: 'Lampu (Depan, Belakang, Sein)', weight: 4, isSafetyItem: true, orderIndex: 2 },
+                { itemKey: 'manual_speedo', question: 'Speedometer & Indikator', weight: 2, orderIndex: 3 },
+              ]
+            }
+          },
+          {
+            name: 'Dokumen & Surat',
+            weight: 10,
+            orderIndex: 6,
+            items: {
+              create: [
+                { itemKey: 'manual_bpkb', question: 'BPKB & Faktur', weight: 4, isCriticalItem: true, orderIndex: 1 },
+                { itemKey: 'manual_stnk', question: 'Status STNK & Pajak', weight: 3, orderIndex: 2 },
+                { itemKey: 'manual_nosin', question: 'Kecocokan No. Rangka & Mesin', weight: 2, isCriticalItem: true, orderIndex: 3 },
+                { itemKey: 'manual_kunci', question: 'Kunci Cadangan', weight: 1, orderIndex: 4 },
+              ]
+            }
+          }
+        ]
+      }
+    }
+  })
+
+  console.log('Seeding Packages Complete.')
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect()
-  })
-  .catch(async (e) => {
+  .catch((e) => {
     console.error(e)
-    await prisma.$disconnect()
     process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
   })
