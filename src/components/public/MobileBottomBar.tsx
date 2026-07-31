@@ -1,19 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { Phone, MessageCircle, PackageSearch, MapPin } from "lucide-react";
+import { Home, MessageCircle, PackageSearch, MapPin } from "lucide-react";
 
 export default function MobileBottomBar() {
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[var(--border)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around h-16">
-        <a 
-          href="tel:082326921142" 
+        <Link 
+          href="/" 
           className="flex flex-col items-center justify-center w-full h-full text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors"
         >
-          <Phone size={20} className="mb-1" />
-          <span className="text-[10px] font-medium">Telepon</span>
-        </a>
+          <Home size={20} className="mb-1" />
+          <span className="text-[10px] font-medium">Beranda</span>
+        </Link>
         
         <a 
           href="https://wa.me/6282326921142" 
