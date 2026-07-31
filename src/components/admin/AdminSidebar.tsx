@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, Settings, LogOut, FileText, MapPin, ShieldCheck, Users, Receipt } from "lucide-react";
+import { LayoutDashboard, Package, Settings, LogOut, FileText, MapPin, ShieldCheck, Users, Receipt, UserCog } from "lucide-react";
 import { logout } from "@/lib/auth";
 
 const menuItems = [
@@ -13,6 +13,7 @@ const menuItems = [
   { name: "Pelanggan", href: "/admin/customers", icon: Users },
   { name: "Laporan", href: "/admin/reports", icon: FileText },
   { name: "Cabang", href: "/admin/branches", icon: MapPin },
+  { name: "Pengguna", href: "/admin/users", icon: UserCog },
   { name: "Pengaturan", href: "/admin/settings", icon: Settings },
 ];
 
