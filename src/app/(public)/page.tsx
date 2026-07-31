@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const motorsData: any = await prisma.motor.findMany({
+    where: { status: "Tersedia" },
     orderBy: { createdAt: "desc" },
     include: { pricing: true, document: true, history: true, inspection: true }
   } as any);
