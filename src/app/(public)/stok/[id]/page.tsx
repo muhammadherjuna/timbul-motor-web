@@ -212,20 +212,41 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
                       Diinspeksi oleh: <span className="font-medium text-gray-800">{activeSession.inspectorName}</span> pada {new Date(activeSession.completedAt!).toLocaleDateString('id-ID')}
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-6">
+                      {/* Poin Plus / Normal */}
+                      {activeSession.items.filter((i:any) => i.status === 'NORMAL').length > 0 && (
+                        <div>
+                          <p className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <CheckCircle size={16} className="text-green-500" /> Kondisi Baik / Poin Plus
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {activeSession.items.filter((i:any) => i.status === 'NORMAL').map((item:any) => (
+                              <div key={item.id} className="flex items-start gap-2 p-2 bg-green-50/50 rounded-lg border border-green-100">
+                                <Check size={14} className="text-green-600 shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="font-semibold text-gray-800 text-xs">{item.templateItem.question}</p>
+                                  <p className="text-[11px] text-gray-600">{item.answer}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Catatan Minus */}
                       {activeSession.items.filter((i:any) => i.status === 'CATATAN' || i.status === 'PERBAIKAN' || i.status === 'KRITIS').length === 0 ? (
-                        <div className="text-center p-4 bg-green-50 rounded-lg text-green-700">
+                        <div className="text-center p-4 bg-green-50 rounded-lg text-green-700 border border-green-200">
                           <CheckCircle className="mx-auto mb-2" size={24} />
-                          <p className="font-medium">Kondisi Sangat Baik</p>
-                          <p className="text-sm">Tidak ada catatan minus yang ditemukan.</p>
+                          <p className="font-medium">Kondisi Sangat Sempurna</p>
+                          <p className="text-sm">Tidak ada catatan minus sama sekali yang ditemukan.</p>
                         </div>
                       ) : (
                         <div>
-                          <p className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                          <p className="font-bold text-gray-800 mb-3 flex items-center gap-2 border-t border-gray-100 pt-4">
                             <Info size={16} className="text-yellow-500" /> Catatan Transparansi
                           </p>
                           <div className="space-y-3">
-                            {activeSession.items.filter((i:any) => i.status === 'CATATAN' || i.status === 'PERBAIKAN').map((item:any) => (
+                            {activeSession.items.filter((i:any) => i.status === 'CATATAN' || i.status === 'PERBAIKAN' || i.status === 'KRITIS').map((item:any) => (
                               <div key={item.id} className="p-3 border border-gray-200 rounded-lg bg-gray-50">
                                 <div className="flex items-start justify-between gap-4">
                                   <div>
@@ -234,7 +255,8 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
                                     {item.notes && <p className="text-xs font-medium text-orange-600 mt-2">"{item.notes}"</p>}
                                   </div>
                                   <span className={`shrink-0 px-2 py-1 text-[10px] font-bold rounded-full ${
-                                    item.status === 'PERBAIKAN' ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'
+                                    item.status === 'PERBAIKAN' ? 'bg-orange-100 text-orange-700' : 
+                                    item.status === 'KRITIS' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
                                   }`}>
                                     {item.status}
                                   </span>
