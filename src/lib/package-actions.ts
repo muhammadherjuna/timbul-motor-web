@@ -16,7 +16,7 @@ export async function togglePackageItem(packageItemId: string, isActive: boolean
 
   // Jika mencoba menonaktifkan, pastikan ini bukan item aktif terakhir di kategorinya
   if (!isActive) {
-    const activeItems = item.category.items.filter(i => i.isActive);
+    const activeItems = item.category.items.filter((i: any) => i.isActive);
     if (activeItems.length <= 1 && item.isActive) {
       throw new Error("Kategori harus memiliki setidaknya satu item yang aktif.");
     }

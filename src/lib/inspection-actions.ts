@@ -84,20 +84,20 @@ export async function saveInspectionDraft(sessionId: string, answers: any[]) {
     where: { sessionId }
   });
 
-  if (answers.length > 0) {
-    await prisma.inspectionItem.createMany({
-      data: answers.map(a => ({
-        sessionId,
-        packageItemId: a.packageItemId,
-        answer: a.answer,
-        status: a.status as ItemAnswerStatus,
-        score: SCORE_MAP[a.status as ItemAnswerStatus] ?? null,
-        notes: a.notes,
-      }))
-    });
-  }
-  
-  await prisma.inspectionSession.update({
+    if (answers.length > 0) {
+      await prisma.inspectionItem.createMany({
+        data: answers.map(a => ({
+          sessionId,
+          packageItemId: a.packageItemId,
+          answer: a.answer,
+          status: a.status,
+          score: SCORE_MAP[a.status] ?? null,
+          notes: a.notes,
+        }))
+      });
+    }
+    
+    await prisma.inspectionSession.update({
     where: { id: sessionId },
     data: { status: "IN_PROGRESS" }
   });
@@ -146,13 +146,13 @@ export async function completeInspectionSession(sessionId: string) {
       const answeredItem = items.find(i => i.packageItem.itemKey === snap.itemKey);
       
       const score = answeredItem?.score ?? 0;
-      const status = answeredItem?.status ?? ItemAnswerStatus.BELUM_DIPERIKSA;
+      const status = answeredItem?.status ?? "BELUM_DIPERIKSA";
 
       if ((snap.isSafetyItem || snap.isCriticalItem) && (
-        status === ItemAnswerStatus.RUSAK || 
-        status === ItemAnswerStatus.PERLU_PERBAIKAN ||
-        status === ItemAnswerStatus.PERLU_GANTI ||
-        status === ItemAnswerStatus.TIDAK_LENGKAP
+        status === "RUSAK" || 
+        status === "PERLU_PERBAIKAN" ||
+        status === "PERLU_GANTI" ||
+        status === "TIDAK_LENGKAP"
       )) {
         hasCritical = true;
       }

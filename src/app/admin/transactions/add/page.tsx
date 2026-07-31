@@ -46,8 +46,8 @@ export default function AddTransactionPage() {
         getCustomers(),
         getAvailableMotors()
       ]);
-      if (customersRes.success) setCustomers(customersRes.data);
-      if (motorsRes.success) setMotors(motorsRes.data);
+      if (customersRes.success) setCustomers(customersRes.data || []);
+      if (motorsRes.success) setMotors(motorsRes.data || []);
       setFetching(false);
     }
     loadData();

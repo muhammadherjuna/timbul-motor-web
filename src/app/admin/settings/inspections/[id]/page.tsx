@@ -21,5 +21,5 @@ export default async function PackageDetailPage({ params }: { params: { id: stri
     notFound();
   }
 
-  return <PackageDetailClient pkg={pkg} />;
+  return <PackageDetailClient pkg={{ ...pkg, description: pkg.description || "" }} />;
 }

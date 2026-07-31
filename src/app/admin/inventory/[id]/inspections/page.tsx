@@ -11,7 +11,7 @@ export default async function MotorInspectionsHistoryPage({ params }: { params: 
     include: {
       inspectionSessions: {
         orderBy: { startedAt: 'desc' },
-        include: { template: true }
+        include: { package: true }
       },
       inspection: true // Old inspection data
     }
@@ -47,21 +47,25 @@ export default async function MotorInspectionsHistoryPage({ params }: { params: 
             motor.inspectionSessions.map((sess:any) => (
               <div key={sess.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div>
-                  <p className="font-bold">Sesi: {sess.template.name}</p>
-                  <p className="text-sm text-gray-500 flex items-center gap-2">
-                    <Clock size={14} /> Dibuat: {new Date(sess.startedAt).toLocaleString('id-ID')} • Oleh: {sess.inspectorName}
-                  </p>
+                  <p className="font-bold">Sesi: {sess.package?.name}</p>
+                  <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                    <span className="flex items-center gap-1"><Clock size={14} /> {sess.startedAt.toLocaleDateString("id-ID")}</span>
+                    <span>Status: <span className="font-medium text-gray-800">{sess.status}</span></span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className={`inline-block px-2 py-1 text-xs font-bold rounded-full mb-1 ${
-                    sess.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
-                    sess.status === 'COMPLETED' ? 'bg-yellow-100 text-yellow-700' :
-                    sess.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {sess.status}
-                  </span>
-                  {sess.grade && <p className="font-bold">Grade {sess.grade}</p>}
+                <div className="flex items-center gap-4">
+                  {sess.status === "COMPLETED" || sess.status === "APPROVED" ? (
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Grade</p>
+                      <p className={`font-bold text-xl ${sess.grade === 'A' ? 'text-green-600' : sess.grade === 'B' ? 'text-blue-600' : sess.grade === 'C' ? 'text-orange-600' : 'text-red-600'}`}>
+                        {sess.grade || "-"}
+                      </p>
+                    </div>
+                  ) : (
+                    <Link href={`/admin/inventory/${id}/edit`} className="text-sm font-medium text-[var(--primary)] hover:underline">
+                      Lanjutkan Inspeksi
+                    </Link>
+                  )}
                 </div>
               </div>
             ))
@@ -70,24 +74,20 @@ export default async function MotorInspectionsHistoryPage({ params }: { params: 
       </div>
 
       {motor.inspection && (
-        <div className="bg-white rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-[var(--border)] shadow-sm overflow-hidden opacity-70">
           <div className="p-4 border-b border-[var(--border)]">
-            <h2 className="font-bold flex items-center gap-2 text-gray-600"><FileText size={18} /> Data Inspeksi Lama (Arsip)</h2>
+            <h2 className="font-bold flex items-center gap-2"><FileText size={18} className="text-gray-500" /> Data Inspeksi Lama (Legacy)</h2>
+            <p className="text-sm text-gray-500 mt-1">Sistem ini digantikan oleh Sesi Inspeksi Cerdas di atas.</p>
           </div>
           <div className="p-4">
-            <p className="text-sm text-gray-500 mb-2">Ini adalah data inspeksi dari sistem lama sebelum implementasi inspeksi cerdas.</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <div>
-                <p className="text-gray-500 text-xs">Grade</p>
-                <p className="font-bold">{motor.inspection.inspection_grade || '-'}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500">Grade Terakhir</p>
+                <p className="font-bold">{motor.inspection.inspection_grade || "-"}</p>
               </div>
-              <div>
-                <p className="text-gray-500 text-xs">Inspektor</p>
-                <p className="font-bold">{motor.inspection.inspector_name || '-'}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-xs">Status Arsip</p>
-                <p className="font-bold">{motor.inspection.archived ? 'Diarsipkan' : 'Aktif'}</p>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500">Inspektor</p>
+                <p className="font-bold">{motor.inspection.inspector_name || "-"}</p>
               </div>
             </div>
           </div>

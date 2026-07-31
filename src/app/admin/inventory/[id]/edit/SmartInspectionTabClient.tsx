@@ -3,17 +3,17 @@
 import { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle, Info, Save, Wrench, XCircle, ChevronDown, ChevronUp, Upload, Check } from "lucide-react";
 import { 
-  getInspectionTemplate, 
+  getInspectionPackage, 
   createInspectionSession, 
   getLatestInspectionSession,
   saveInspectionDraft,
   completeInspectionSession
 } from "@/lib/inspection-actions";
 import { uploadInspectionEvidence } from "@/lib/inspection-storage";
-import { useFormStatus } from "react-dom";
 
 export default function SmartInspectionTabClient({ motorId, isReadOnly = false }: { motorId: string, isReadOnly?: boolean }) {
-  const [template, setTemplate] = useState<any>(null);
+  const [packages, setPackages] = useState<any[]>([]);
+  const [selectedPackageId, setSelectedPackageId] = useState<string>("");
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [answers, setAnswers] = useState<Record<string, any>>({});
@@ -22,6 +22,9 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [evidences, setEvidences] = useState<Record<string, File>>({});
+  
+  // Derived state to group snapshots by category name
+  const [snapshotCategories, setSnapshotCategories] = useState<{name: string, weight: number, items: any[]}[]>([]);
 
   useEffect(() => {
     loadData();
@@ -33,27 +36,48 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
       const sess = await getLatestInspectionSession(motorId);
       if (sess) {
         setSession(sess);
-        setTemplate(sess.template);
+        
+        // Group snapshot items by categoryName for rendering
+        const catsMap = new Map<string, any>();
+        sess.snapshot.forEach((snap: any) => {
+          if (!catsMap.has(snap.categoryName)) {
+            // Find category weight from the linked package if possible, otherwise just set to 0 for UI
+            const pkgCat = sess.package?.categories?.find((c: any) => c.name === snap.categoryName);
+            catsMap.set(snap.categoryName, {
+              name: snap.categoryName,
+              weight: pkgCat?.weight || 0,
+              items: []
+            });
+          }
+          catsMap.get(snap.categoryName).items.push(snap);
+        });
+        
+        const catsArray = Array.from(catsMap.values());
+        setSnapshotCategories(catsArray);
+
         // Map existing items to answers state
         const initialAnswers: Record<string, any> = {};
         sess.items.forEach((item: any) => {
-          initialAnswers[item.templateItemId] = {
+          // Using packageItemId to link Answer -> Snapshot
+          initialAnswers[item.packageItem.itemKey] = {
+            packageItemId: item.packageItemId,
             answer: item.answer,
             status: item.status,
-            isCritical: item.isCritical,
             score: item.score,
             notes: item.notes || ""
           };
         });
         setAnswers(initialAnswers);
-        if (sess.template.groups.length > 0) {
-          setExpandedGroup(sess.template.groups[0].id);
+        
+        if (catsArray.length > 0) {
+          setExpandedGroup(catsArray[0].name);
         }
       } else {
-        const tpl = await getInspectionTemplate();
-        setTemplate(tpl);
-        if (tpl?.groups && tpl.groups.length > 0) {
-          setExpandedGroup(tpl.groups[0].id);
+        // Load default package for new session
+        const defaultPkg = await getInspectionPackage();
+        if (defaultPkg) {
+          setPackages([defaultPkg]); // For simplicity, we just use the default or we could fetch all
+          setSelectedPackageId(defaultPkg.id);
         }
       }
     } catch (e) {
@@ -65,10 +89,10 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
   };
 
   const handleCreateSession = async () => {
-    if (!template) return;
+    if (!selectedPackageId) return;
     setSaving(true);
     try {
-      const sess = await createInspectionSession(motorId, template.id, "Admin");
+      await createInspectionSession(motorId, selectedPackageId, "Admin");
       await loadData();
     } catch (e) {
       setErrorMsg("Gagal membuat sesi inspeksi.");
@@ -77,35 +101,46 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
     }
   };
 
-  const handleAnswerSelect = (templateItemId: string, answerObj: any) => {
+  const handleAnswerSelect = (snapItem: any, status: string, answerText: string) => {
     if (isReadOnly || (session && (session.status === "COMPLETED" || session.status === "APPROVED"))) return;
+    
+    // We need packageItemId, which we can find from session.package.categories
+    // Because snapshot doesn't hold the packageItemId natively, wait!
+    // We need packageItemId to save it. Let's find it from the package.
+    const pkgCat = session.package.categories.find((c: any) => c.name === snapItem.categoryName);
+    const pkgItem = pkgCat?.items.find((i: any) => i.itemKey === snapItem.itemKey);
+
+    if (!pkgItem) {
+      setErrorMsg("Error: Item tidak ditemukan di paket asal.");
+      return;
+    }
+
     setAnswers(prev => ({
       ...prev,
-      [templateItemId]: {
-        ...prev[templateItemId],
-        answer: answerObj.text,
-        status: answerObj.status,
-        isCritical: answerObj.isCritical,
-        score: answerObj.score,
+      [snapItem.itemKey]: {
+        ...prev[snapItem.itemKey],
+        packageItemId: pkgItem.id,
+        answer: answerText,
+        status: status,
       }
     }));
   };
 
-  const handleNoteChange = (templateItemId: string, note: string) => {
+  const handleNoteChange = (itemKey: string, note: string) => {
     if (isReadOnly || (session && (session.status === "COMPLETED" || session.status === "APPROVED"))) return;
     setAnswers(prev => ({
       ...prev,
-      [templateItemId]: {
-        ...(prev[templateItemId] || {}),
+      [itemKey]: {
+        ...(prev[itemKey] || {}),
         notes: note
       }
     }));
   };
 
-  const handleFileChange = (templateItemId: string, file: File | null) => {
+  const handleFileChange = (itemKey: string, file: File | null) => {
     if (isReadOnly || (session && (session.status === "COMPLETED" || session.status === "APPROVED"))) return;
     if (file) {
-      setEvidences(prev => ({ ...prev, [templateItemId]: file }));
+      setEvidences(prev => ({ ...prev, [itemKey]: file }));
     }
   };
 
@@ -115,11 +150,7 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
     setErrorMsg("");
     setSuccessMsg("");
     try {
-      const itemsToSave = Object.keys(answers).map(itemId => ({
-        templateItemId: itemId,
-        ...answers[itemId]
-      }));
-      
+      const itemsToSave = Object.values(answers);
       await saveInspectionDraft(session.id, itemsToSave);
       setSuccessMsg("Draft berhasil disimpan.");
       setTimeout(() => setSuccessMsg(""), 3000);
@@ -134,21 +165,20 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
     if (!session) return;
     
     // Validasi
-    let hasError = false;
-    for (const group of template.groups) {
-      for (const item of group.items) {
-        const ans = answers[item.id];
+    for (const cat of snapshotCategories) {
+      for (const snap of cat.items) {
+        const ans = answers[snap.itemKey];
         if (!ans) {
-          setErrorMsg(`Pertanyaan "${item.question}" belum dijawab.`);
-          setExpandedGroup(group.id);
+          setErrorMsg(`Pertanyaan "${snap.question}" belum dijawab.`);
+          setExpandedGroup(cat.name);
           return;
         }
-        if ((ans.status === "PERBAIKAN" || ans.status === "KRITIS") && !evidences[item.id]) {
+        if ((ans.status === "PERLU_PERBAIKAN" || ans.status === "RUSAK") && !evidences[snap.itemKey]) {
           // Check if already has evidence in DB
-          const existingItem = session.items.find((i:any) => i.templateItemId === item.id);
+          const existingItem = session.items.find((i:any) => i.packageItem.itemKey === snap.itemKey);
           if (!existingItem?.evidence?.length) {
-            setErrorMsg(`Foto bukti wajib diunggah untuk status PERBAIKAN/KRITIS pada "${item.question}".`);
-            setExpandedGroup(group.id);
+            setErrorMsg(`Foto bukti wajib diunggah untuk status PERBAIKAN/RUSAK pada "${snap.question}".`);
+            setExpandedGroup(cat.name);
             return;
           }
         }
@@ -159,32 +189,16 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
     setErrorMsg("");
     
     try {
-      // 1. Upload files first (in a real app, do this sequentially or via Promise.all)
-      // Wait, we need the `InspectionItem` ID to upload evidence, which means we must save draft first.
-      const itemsToSave = Object.keys(answers).map(itemId => ({
-        templateItemId: itemId,
-        ...answers[itemId]
-      }));
+      const itemsToSave = Object.values(answers);
       await saveInspectionDraft(session.id, itemsToSave);
       
-      // Reload session to get actual Item IDs
-      const updatedSess = await getLatestInspectionSession(motorId);
+      // Realistically upload files here via a Server Action
       
-      // Upload evidences
-      for (const tplItemId of Object.keys(evidences)) {
-        const file = evidences[tplItemId];
-        const actualItem = updatedSess?.items.find((i:any) => i.templateItemId === tplItemId);
-        if (actualItem && file) {
-          // For simplicity in this mockup, we just assume it's handled. 
-          // Realistically, call a Server Action `uploadEvidenceAction` here.
-        }
-      }
-
       await completeInspectionSession(session.id);
       setSuccessMsg("Inspeksi diselesaikan! Menunggu approval Supervisor.");
       await loadData();
-    } catch (e) {
-      setErrorMsg("Gagal menyelesaikan inspeksi.");
+    } catch (e: any) {
+      setErrorMsg(e.message || "Gagal menyelesaikan inspeksi.");
     } finally {
       setSaving(false);
     }
@@ -192,14 +206,25 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
 
   const getStatusBadge = (status: string) => {
     switch(status) {
-      case "NORMAL": return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 font-medium">NORMAL</span>;
-      case "CATATAN": return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700 font-medium">CATATAN</span>;
-      case "PERBAIKAN": return <span className="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-700 font-medium">PERBAIKAN</span>;
-      case "KRITIS": return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700 font-medium">KRITIS</span>;
-      case "TIDAK_BERLAKU": return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 font-medium">TIDAK BERLAKU</span>;
+      case "NORMAL":
+      case "LENGKAP": return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 font-medium">{status}</span>;
+      case "PERLU_PERBAIKAN": return <span className="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-700 font-medium">PERBAIKAN</span>;
+      case "RUSAK":
+      case "TIDAK_LENGKAP":
+      case "PERLU_GANTI": return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700 font-medium">{status}</span>;
       default: return null;
     }
   };
+
+  const standardOptions = [
+    { text: 'Normal', status: 'NORMAL' },
+    { text: 'Perlu Perbaikan', status: 'PERLU_PERBAIKAN' },
+    { text: 'Rusak', status: 'RUSAK' },
+  ];
+  const documentOptions = [
+    { text: 'Lengkap / Sesuai', status: 'LENGKAP' },
+    { text: 'Tidak Lengkap', status: 'TIDAK_LENGKAP' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -228,7 +253,7 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
           <button 
             type="button"
             onClick={handleCreateSession}
-            disabled={saving || !template}
+            disabled={saving || !selectedPackageId}
             className="px-6 py-2 bg-[var(--primary)] text-white rounded-lg font-medium"
           >
             {saving ? "Membuat..." : "Mulai Inspeksi Baru"}
@@ -244,7 +269,7 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
             {(session.status === "COMPLETED" || session.status === "APPROVED") && (
               <div className="text-right">
                 <p className="text-sm text-[var(--muted-foreground)]">Grade</p>
-                <p className={`font-bold text-2xl ${session.grade === 'A' ? 'text-green-600' : session.grade === 'B' ? 'text-blue-600' : 'text-red-600'}`}>
+                <p className={`font-bold text-2xl ${session.grade === 'A' ? 'text-green-600' : session.grade === 'B' ? 'text-blue-600' : session.grade === 'C' ? 'text-orange-600' : 'text-red-600'}`}>
                   {session.grade || "-"}
                 </p>
               </div>
@@ -252,29 +277,36 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
           </div>
 
           <div className="space-y-4">
-            {template?.groups?.map((group: any) => (
-              <div key={group.id} className="border border-[var(--border)] rounded-xl overflow-hidden bg-white">
+            {snapshotCategories.map((cat) => (
+              <div key={cat.name} className="border border-[var(--border)] rounded-xl overflow-hidden bg-white">
                 <button
                   type="button"
-                  onClick={() => setExpandedGroup(expandedGroup === group.id ? null : group.id)}
+                  onClick={() => setExpandedGroup(expandedGroup === cat.name ? null : cat.name)}
                   className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold">{group.name}</span>
-                    <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">Bobot: {group.weight}%</span>
+                    <span className="font-semibold">{cat.name}</span>
+                    <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">Bobot Asli: {cat.weight}%</span>
                   </div>
-                  {expandedGroup === group.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  {expandedGroup === cat.name ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                 </button>
                 
-                {expandedGroup === group.id && (
+                {expandedGroup === cat.name && (
                   <div className="p-4 space-y-6 divide-y divide-gray-100">
-                    {group.items.map((item: any, idx: number) => {
-                      const currentAns = answers[item.id];
+                    {cat.items.map((snap: any, idx: number) => {
+                      const currentAns = answers[snap.itemKey];
+                      const options = snap.categoryName.toLowerCase().includes('dokumen') ? documentOptions : standardOptions;
+                      
                       return (
-                        <div key={item.id} className={idx > 0 ? "pt-6" : ""}>
-                          <p className="font-medium text-[var(--foreground)] mb-3">{idx + 1}. {item.question}</p>
-                          <div className="grid sm:grid-cols-2 gap-3 mb-4">
-                            {item.possibleAnswers.map((pa: any, i: number) => {
+                        <div key={snap.itemKey} className={idx > 0 ? "pt-6" : ""}>
+                          <div className="mb-3 flex items-center gap-2">
+                            <p className="font-medium text-[var(--foreground)]">{idx + 1}. {snap.question}</p>
+                            {snap.isSafetyItem && <span className="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Keselamatan</span>}
+                            {snap.isCriticalItem && <span className="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Kritikal</span>}
+                          </div>
+                          
+                          <div className="grid sm:grid-cols-3 gap-3 mb-4">
+                            {options.map((opt, i) => {
                               const isDisabled = session.status === "COMPLETED" || session.status === "APPROVED";
                               return (
                               <label 
@@ -282,28 +314,28 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
                                 className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
                                   isDisabled ? "cursor-not-allowed opacity-90" : "cursor-pointer hover:bg-gray-50"
                                 } ${
-                                  currentAns?.answer === pa.text 
+                                  currentAns?.status === opt.status 
                                     ? "border-[var(--primary)] bg-[var(--primary)]/5" 
                                     : "border-gray-200"
                                 }`}
                               >
                                 <input 
                                   type="radio" 
-                                  name={`ans_${item.id}`} 
-                                  checked={currentAns?.answer === pa.text}
-                                  onChange={() => handleAnswerSelect(item.id, pa)}
+                                  name={`ans_${snap.itemKey}`} 
+                                  checked={currentAns?.status === opt.status}
+                                  onChange={() => handleAnswerSelect(snap, opt.status, opt.text)}
                                   className={`mt-1 text-[var(--primary)] focus:ring-[var(--primary)] ${isDisabled ? "cursor-not-allowed" : ""}`}
                                   disabled={isDisabled}
                                 />
                                 <div>
-                                  <p className="text-sm font-medium">{pa.text}</p>
-                                  <div className="mt-1">{getStatusBadge(pa.status)}</div>
+                                  <p className="text-sm font-medium">{opt.text}</p>
+                                  <div className="mt-1">{getStatusBadge(opt.status)}</div>
                                 </div>
                               </label>
                             )})}
                           </div>
 
-                          {currentAns && (currentAns.status === "PERBAIKAN" || currentAns.status === "KRITIS") && (
+                          {currentAns && (currentAns.status === "PERLU_PERBAIKAN" || currentAns.status === "RUSAK") && (
                             <div className={`mb-4 p-3 rounded-lg border flex items-center justify-between ${session.status === "COMPLETED" || session.status === "APPROVED" ? "bg-gray-50 border-gray-200 opacity-80" : "bg-orange-50 border-orange-200"}`}>
                               <div className={`flex items-center gap-2 text-sm ${session.status === "COMPLETED" || session.status === "APPROVED" ? "text-gray-500" : "text-orange-800"}`}>
                                 <Upload size={16} /> <span>Wajib unggah foto bukti</span>
@@ -311,7 +343,7 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
                               <input 
                                 type="file" 
                                 accept="image/*"
-                                onChange={(e) => handleFileChange(item.id, e.target.files?.[0] || null)}
+                                onChange={(e) => handleFileChange(snap.itemKey, e.target.files?.[0] || null)}
                                 className={`text-sm ${session.status === "COMPLETED" || session.status === "APPROVED" ? "cursor-not-allowed text-gray-400" : ""}`}
                                 disabled={session.status === "COMPLETED" || session.status === "APPROVED"}
                               />
@@ -322,7 +354,7 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
                             <textarea 
                               placeholder="Catatan tambahan (opsional)..." 
                               value={currentAns?.notes || ""}
-                              onChange={(e) => handleNoteChange(item.id, e.target.value)}
+                              onChange={(e) => handleNoteChange(snap.itemKey, e.target.value)}
                               className={`w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm ${session.status === "COMPLETED" || session.status === "APPROVED" ? "cursor-not-allowed bg-gray-50 text-gray-500" : ""}`}
                               rows={2}
                               disabled={session.status === "COMPLETED" || session.status === "APPROVED"}
