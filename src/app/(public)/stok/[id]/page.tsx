@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/db";
-import { MapPin, Phone, CheckCircle, ShieldCheck, Calendar, Gauge, Cog, ChevronLeft, FileText, History, Info, AlertTriangle } from "lucide-react";
+import { MapPin, Phone, CheckCircle, ShieldCheck, Calendar, Gauge, Cog, ChevronLeft, FileText, History, Info, AlertTriangle, Check } from "lucide-react";
 import InstallmentCalculator from "@/components/InstallmentCalculator";
 import BookingModal from "@/components/public/BookingModal";
 import StokImageGallery from "@/components/public/StokImageGallery";
