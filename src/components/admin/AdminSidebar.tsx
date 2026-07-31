@@ -28,8 +28,8 @@ export default function AdminSidebar({ role = "ADMIN", name = "Admin" }: { role?
       return item.href === "/admin/inventory" || item.href === "/admin";
     }
     if (role === "ADMIN") {
-      // For testing purposes, allow Admin to see all menus
-      return true;
+      // Admin Data sees all except Approval Inspeksi
+      return item.href !== "/admin/inspections";
     }
     return false;
   }).map(item => {

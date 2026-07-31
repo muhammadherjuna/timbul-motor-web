@@ -17,6 +17,15 @@ export default function LoginPage() {
             <LoginForm />
           </div>
           
+          <div className="bg-blue-50 px-6 py-4 border-t border-gray-100 text-sm">
+            <p className="font-bold text-blue-800 mb-2">💡 Catatan Login (Untuk Testing):</p>
+            <ul className="text-blue-700 space-y-1 text-xs">
+              <li><strong>Admin:</strong> admin@timbulmotor.com / admin123</li>
+              <li><strong>Supervisor:</strong> supervisor@timbulmotor.com / super123</li>
+              <li><strong>Mekanik:</strong> mekanik@timbulmotor.com / mekanik123</li>
+            </ul>
+          </div>
+
           <div className="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
             <p className="text-xs text-gray-500">
               Sistem Manajemen Timbul Motor Kebumen &copy; {new Date().getFullYear()}
