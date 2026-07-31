@@ -263,6 +263,29 @@ export async function getActiveInspectionSession(motorId: string) {
   });
 }
 
+export async function updateItemRepairStatus(itemId: string, repairStatus: string, repairNote?: string) {
+  const allowed = ["PERLU_PERBAIKAN", "SUDAH_DIPERBAIKI", "SEBAGAIMANA_ADANYA"];
+  if (!allowed.includes(repairStatus)) {
+    throw new Error("Invalid repairStatus value");
+  }
+
+  const updated = await prisma.inspectionItem.update({
+    where: { id: itemId },
+    data: {
+      repairStatus,
+      repairNote,
+      repairedAt: repairStatus === "SUDAH_DIPERBAIKI" ? new Date() : null
+    },
+    include: {
+      session: true
+    }
+  });
+
+  revalidatePath(`/admin/inventory/${updated.session.motorId}/edit`);
+  revalidatePath(`/stok/${updated.session.motorId}`);
+  return { success: true };
+}
+
 export async function getLatestInspectionSession(motorId: string) {
   return await prisma.inspectionSession.findFirst({
     where: { motorId },

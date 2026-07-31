@@ -173,14 +173,23 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
               </div>
             </div>
 
-            {/* DIGITAL INSPECTION REPORT */}
+            {/* DIGITAL INSPECTION REPORT */ }
             <div className="mb-8 bg-white border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
               <div className="bg-[#f0fdf4] px-5 py-4 border-b border-green-200 flex justify-between items-center">
                 <div>
                   <h3 className="font-bold text-green-800 flex items-center gap-2">
-                    <ShieldCheck size={20} className="text-green-600" /> Laporan Inspeksi Mekanik
+                    <ShieldCheck size={20} className="text-green-600" /> Laporan Inspeksi Mekanik (Transparansi Penuh)
                   </h3>
                 </div>
+                {activeSession && (
+                  <Link 
+                    href={`/admin/inventory/${motor.id}/certificate`} 
+                    target="_blank"
+                    className="text-xs font-bold text-green-700 hover:underline flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg border border-green-200"
+                  >
+                    <FileText size={14} /> Cetak Sertifikat
+                  </Link>
+                )}
               </div>
               
               <div className="p-5">
@@ -188,7 +197,7 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
                   <div className="bg-gray-50 border border-gray-200 p-6 rounded-xl text-center">
                     <AlertTriangle className="mx-auto text-gray-400 mb-2" size={32} />
                     <p className="font-bold text-gray-600">Belum Diperiksa</p>
-                    <p className="text-sm text-gray-500">Unit ini belum diperiksa dengan standar inspeksi terbaru.</p>
+                    <p className="text-sm text-gray-500">Unit ini belum memiliki sesi inspeksi yang berstatus terverifikasi (Approved).</p>
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -203,75 +212,76 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-green-700 font-bold uppercase">Grade</p>
+                        <p className="text-xs text-green-700 font-bold uppercase">Grade Hasil</p>
                         <p className="font-black text-3xl text-green-700">{activeSession.grade}</p>
                       </div>
                     </div>
                     
-                    <div className="text-sm text-gray-500 border-b border-gray-100 pb-4">
-                      Diinspeksi oleh: <span className="font-medium text-gray-800">{activeSession.inspectorName}</span> pada {new Date(activeSession.completedAt!).toLocaleDateString('id-ID')}
+                    <div className="text-xs text-gray-500 border-b border-gray-100 pb-3 flex justify-between">
+                      <span>Inspektor: <strong className="text-gray-700">{activeSession.inspectorName}</strong></span>
+                      <span>Disetujui: <strong className="text-gray-700">{activeSession.approvedAt ? new Date(activeSession.approvedAt).toLocaleDateString('id-ID') : '-'}</strong></span>
                     </div>
 
-                    <div className="space-y-6">
-                      {/* Poin Plus / Normal */}
-                      {activeSession.items.filter((i:any) => i.status === 'NORMAL').length > 0 && (
-                        <div>
-                          <p className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                            <CheckCircle size={16} className="text-green-500" /> Kondisi Baik / Poin Plus
-                          </p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {activeSession.items.filter((i:any) => i.status === 'NORMAL').map((item:any) => (
-                              <div key={item.id} className="flex items-start gap-2 p-2 bg-green-50/50 rounded-lg border border-green-100">
-                                <Check size={14} className="text-green-600 shrink-0 mt-0.5" />
-                                <div>
-                                  <p className="font-semibold text-gray-800 text-xs">{item.templateItem.question}</p>
-                                  <p className="text-[11px] text-gray-600">{item.answer}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Catatan Minus */}
-                      {activeSession.items.filter((i:any) => i.status === 'CATATAN' || i.status === 'PERBAIKAN' || i.status === 'KRITIS').length === 0 ? (
-                        <div className="text-center p-4 bg-green-50 rounded-lg text-green-700 border border-green-200">
-                          <CheckCircle className="mx-auto mb-2" size={24} />
-                          <p className="font-medium">Kondisi Sangat Sempurna</p>
-                          <p className="text-sm">Tidak ada catatan minus sama sekali yang ditemukan.</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <p className="font-bold text-gray-800 mb-3 flex items-center gap-2 border-t border-gray-100 pt-4">
-                            <Info size={16} className="text-yellow-500" /> Catatan Transparansi
-                          </p>
-                          <div className="space-y-3">
-                            {activeSession.items.filter((i:any) => i.status === 'CATATAN' || i.status === 'PERBAIKAN' || i.status === 'KRITIS').map((item:any) => (
-                              <div key={item.id} className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                    {/* Non-Normal Findings with Inline Evidence */}
+                    {activeSession.items.filter((i:any) => i.status !== 'NORMAL' && i.status !== 'LENGKAP').length === 0 ? (
+                      <div className="text-center p-4 bg-green-50 rounded-lg text-green-700 border border-green-200 text-sm">
+                        <CheckCircle className="mx-auto mb-1 text-green-600" size={24} />
+                        <p className="font-bold">Kondisi Sangat Sempurna</p>
+                        <p className="text-xs">Seluruh item pemeriksaan dalam kondisi normal dan tidak memiliki temuan kerusakan.</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="font-bold text-gray-800 mb-3 text-sm flex items-center gap-2">
+                          <Info size={16} className="text-orange-500" /> Daftar Temuan & Catatan Transparansi
+                        </p>
+                        <div className="space-y-3">
+                          {activeSession.items.filter((i:any) => i.status !== 'NORMAL' && i.status !== 'LENGKAP').map((item:any) => {
+                            const snap = activeSession.snapshot.find((s:any) => s.itemKey === item.packageItem?.itemKey);
+                            return (
+                              <div key={item.id} className="p-3.5 border border-gray-200 rounded-xl bg-gray-50/70 space-y-2">
                                 <div className="flex items-start justify-between gap-4">
                                   <div>
-                                    <p className="font-medium text-gray-800 text-sm">{item.templateItem.question}</p>
-                                    <p className="text-xs text-gray-500 mt-1">{item.answer}</p>
-                                    {item.notes && <p className="text-xs font-medium text-orange-600 mt-2">"{item.notes}"</p>}
+                                    <p className="font-bold text-gray-900 text-sm">{snap?.question || item.packageItem?.question}</p>
+                                    <p className="text-xs text-gray-600 mt-0.5">Status: <span className="font-medium text-orange-700">{item.status}</span> ({item.answer})</p>
                                   </div>
-                                  <span className={`shrink-0 px-2 py-1 text-[10px] font-bold rounded-full ${
-                                    item.status === 'PERBAIKAN' ? 'bg-orange-100 text-orange-700' : 
-                                    item.status === 'KRITIS' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                                  <span className={`shrink-0 px-2 py-1 text-[11px] font-bold rounded-full border ${
+                                    item.repairStatus === 'SUDAH_DIPERBAIKI' ? 'bg-green-100 text-green-800 border-green-300' :
+                                    item.repairStatus === 'SEBAGAIMANA_ADANYA' ? 'bg-gray-200 text-gray-800 border-gray-300' :
+                                    'bg-yellow-100 text-yellow-800 border-yellow-300'
                                   }`}>
-                                    {item.status}
+                                    {item.repairStatus === 'SUDAH_DIPERBAIKI' ? '✓ Sudah Diperbaiki' :
+                                     item.repairStatus === 'SEBAGAIMANA_ADANYA' ? 'Dijual Apa Adanya' : 'Perlu Perbaikan'}
                                   </span>
                                 </div>
-                                {item.evidence && item.evidence.filter((e:any) => e.isPublic).map((e:any) => (
-                                  <div key={e.id} className="mt-3">
-                                    <img src={e.storagePath} alt={e.caption || 'Foto Bukti'} className="rounded-lg border border-gray-200 w-32 h-32 object-cover" />
+
+                                {item.notes && (
+                                  <p className="text-xs bg-white p-2.5 rounded-lg border border-gray-200 italic text-gray-700">
+                                    "{item.notes}"
+                                  </p>
+                                )}
+
+                                {/* Inline evidence photo via gated proxy route */}
+                                {item.evidence && item.evidence.length > 0 && (
+                                  <div className="pt-2">
+                                    <p className="text-[11px] font-medium text-gray-500 mb-1">Foto Bukti Temuan:</p>
+                                    <div className="flex gap-2">
+                                      {item.evidence.map((ev: any) => (
+                                        <img 
+                                          key={ev.id}
+                                          src={`/api/inspection-evidence/${ev.id}`} 
+                                          alt="Foto Bukti Temuan"
+                                          className="w-28 h-28 object-cover rounded-lg border border-gray-200 shadow-sm"
+                                        />
+                                      ))}
+                                    </div>
                                   </div>
-                                ))}
+                                )}
                               </div>
-                            ))}
-                          </div>
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

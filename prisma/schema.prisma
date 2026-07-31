@@ -287,11 +287,12 @@ model InspectionItem {
   status     ItemAnswerStatus @default(BELUM_DIPERIKSA)
   score      Float?
 
-  notes       String?
-  repairNote  String?
-  repairedAt  DateTime?
-  reVerifiedAt   DateTime?
-  reVerifiedBy   String?
+  notes        String?
+  repairStatus String    @default("PERLU_PERBAIKAN") // PERLU_PERBAIKAN | SUDAH_DIPERBAIKI | SEBAGAIMANA_ADANYA
+  repairNote   String?
+  repairedAt   DateTime?
+  reVerifiedAt DateTime?
+  reVerifiedBy String?
 
   evidence InspectionEvidence[]
 }

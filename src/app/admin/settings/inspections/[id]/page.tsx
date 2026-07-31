@@ -2,9 +2,10 @@ import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import PackageDetailClient from "./PackageDetailClient";
 
-export default async function PackageDetailPage({ params }: { params: { id: string } }) {
+export default async function PackageDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const pkg = await prisma.inspectionPackage.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       categories: {
         orderBy: { orderIndex: 'asc' },
