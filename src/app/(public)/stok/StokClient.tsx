@@ -19,6 +19,7 @@ function StokContent({ initialMotors }: { initialMotors: any[] }) {
   
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const filteredMotors = useMemo(() => {
     let result = [...initialMotors];
@@ -91,12 +92,18 @@ function StokContent({ initialMotors }: { initialMotors: any[] }) {
       <div className="container mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8 flex-1">
         {/* SIDEBAR FILTER */}
         <aside className="w-full lg:w-64 shrink-0">
-          <div className="bg-white border border-[var(--border)] rounded-xl p-5 sticky top-24">
-            <div className="flex items-center gap-2 mb-6 text-[var(--foreground)] font-bold text-lg border-b border-[var(--border)] pb-4">
-              <Filter size={20} /> Filter Pencarian
-            </div>
+          <div className="bg-white border border-[var(--border)] rounded-xl p-5 lg:sticky lg:top-24">
+            <button 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="w-full flex justify-between items-center text-[var(--foreground)] font-bold text-lg lg:pointer-events-none lg:border-b lg:border-[var(--border)] lg:pb-4"
+            >
+              <div className="flex items-center gap-2">
+                <Filter size={20} /> Filter Pencarian
+              </div>
+              <ChevronRight size={20} className={`lg:hidden transition-transform ${isFilterOpen ? "rotate-90" : ""}`} />
+            </button>
             
-            <div className="space-y-6">
+            <div className={`mt-6 space-y-6 ${isFilterOpen ? "block" : "hidden lg:block"}`}>
               <div>
                 <label className="block text-sm font-bold text-[var(--foreground)] mb-3">Merek</label>
                 <div className="space-y-2">
@@ -175,7 +182,10 @@ function StokContent({ initialMotors }: { initialMotors: any[] }) {
             </div>
             
             <button 
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setIsFilterOpen(false);
+              }}
               className="w-full bg-[var(--primary)] text-white mt-8 py-2 rounded-lg font-bold hover:bg-[var(--primary)]/90 transition-colors"
             >
               Terapkan Filter
