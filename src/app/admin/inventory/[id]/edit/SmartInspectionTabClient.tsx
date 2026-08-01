@@ -278,11 +278,9 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
         const safeId = `category-group-${categoryName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         const el = document.getElementById(safeId);
         if (el) {
-          const yOffset = -20;
-          const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          window.scrollTo({ top: y, behavior: 'smooth' });
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }, 120);
+      }, 100);
     }
   };
 
@@ -363,7 +361,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
               <div 
                 key={cat.name} 
                 id={`category-group-${cat.name.replace(/[^a-zA-Z0-9]/g, '-')}`}
-                className="border border-[var(--border)] rounded-xl overflow-hidden bg-white scroll-mt-6"
+                className="border border-[var(--border)] rounded-xl overflow-hidden bg-white scroll-mt-28"
               >
                 <button
                   type="button"
@@ -431,17 +429,17 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                                 <AlertTriangle size={18} className={session.status === "COMPLETED" ? "text-gray-400 mt-0.5" : "text-amber-600 mt-0.5 flex-shrink-0"} />
                                 <div>
                                   <p className={`text-xs font-bold uppercase tracking-wide ${session.status === "COMPLETED" ? "text-gray-600" : "text-amber-900"}`}>
-                                    Dokumentasi Foto Bukti Temuan (Wajib)
+                                    Wajib Unggah Foto Bukti
                                   </p>
                                   <p className={`text-xs mt-0.5 leading-relaxed ${session.status === "COMPLETED" ? "text-gray-500" : "text-amber-800"}`}>
-                                    Item terindikasi bermasalah ({currentAns.status.replace("_", " ")}). Wajib lampirkan 1 foto bukti kondisi nyata untuk transparansi konsumen.
+                                    Kondisi komponen ini tercatat <strong>{currentAns.status.replace("_", " ")}</strong>. Mohon unggah 1 foto yang jelas sebagai bukti kondisi aktual.
                                   </p>
                                 </div>
                               </div>
 
                               <div className="pt-2 border-t border-amber-200/60 flex flex-wrap items-center gap-3">
                                 <input 
-                                  id={`file-input-${snap.itemKey}`}
+                                  id={`file-input-${snap.itemKey.replace(/[^a-zA-Z0-9]/g, '-')}`}
                                   type="file" 
                                   accept="image/*"
                                   onChange={(e) => handleFileChange(snap.itemKey, e.target.files?.[0] || null)}
@@ -468,7 +466,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                                       {session.status !== "COMPLETED" && (
                                         <div className="flex items-center gap-3 pt-0.5">
                                           <label 
-                                            htmlFor={`file-input-${snap.itemKey}`}
+                                            htmlFor={`file-input-${snap.itemKey.replace(/[^a-zA-Z0-9]/g, '-')}`}
                                             className="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline cursor-pointer"
                                           >
                                             Ganti Foto
@@ -486,7 +484,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                                   </div>
                                 ) : (
                                   <label 
-                                    htmlFor={`file-input-${snap.itemKey}`}
+                                    htmlFor={`file-input-${snap.itemKey.replace(/[^a-zA-Z0-9]/g, '-')}`}
                                     className={`inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-semibold text-xs rounded-lg shadow-sm cursor-pointer transition-colors ${
                                       session.status === "COMPLETED" ? "opacity-50 cursor-not-allowed pointer-events-none" : ""
                                     }`}
