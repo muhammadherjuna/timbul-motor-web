@@ -29,6 +29,8 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
   const [revokeNote, setRevokeNote] = useState("");
   const [showRevokeModal, setShowRevokeModal] = useState(false);
   
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  
   // Derived state to group snapshots by category name
   const [snapshotCategories, setSnapshotCategories] = useState<{name: string, weight: number, items: any[]}[]>([]);
 
@@ -413,7 +415,6 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                                 />
                                 <div>
                                   <p className="text-sm font-medium">{opt.text}</p>
-                                  <div className="mt-1">{getStatusBadge(opt.status)}</div>
                                 </div>
                               </label>
                             )})}
@@ -452,7 +453,9 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                                     <img 
                                       src={evidencePreviews[snap.itemKey] || currentAns.evidenceUrl} 
                                       alt="Foto bukti" 
-                                      className="w-14 h-14 object-cover rounded-md border border-gray-200 flex-shrink-0"
+                                      className="w-14 h-14 object-cover rounded-md border border-gray-200 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                      onClick={() => setZoomedImage(evidencePreviews[snap.itemKey] || currentAns.evidenceUrl)}
+                                      title="Klik untuk memperbesar"
                                     />
                                     <div className="text-xs space-y-1">
                                       <span className="font-bold text-green-700 flex items-center gap-1">
@@ -665,6 +668,29 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                 {saving ? "Memproses..." : "Konfirmasi Revoke"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Zoomed Image Modal */}
+      {zoomedImage && (
+        <div 
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setZoomedImage(null)}
+        >
+          <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center">
+            <button 
+              onClick={() => setZoomedImage(null)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 flex items-center gap-2 font-medium"
+            >
+              <XCircle size={24} /> Tutup
+            </button>
+            <img 
+              src={zoomedImage} 
+              alt="Foto Diperbesar" 
+              className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         </div>
       )}
