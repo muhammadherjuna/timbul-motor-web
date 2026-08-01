@@ -549,7 +549,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
           {(userRole === "SUPER_ADMIN" || userRole === "ADMIN") && session.status === "COMPLETED" && (
             <div className="bg-amber-50 border border-amber-200 p-6 rounded-xl mt-8">
               <h3 className="font-bold text-amber-800 text-lg mb-2 flex items-center gap-2"><CheckCircle size={20}/> Review Supervisor</h3>
-              <p className="text-amber-700 text-sm mb-4">Mekanik telah menyelesaikan inspeksi ini. Silakan review hasil di atas dan setujui untuk dipublikasikan, atau kembalikan jika ada kesalahan.</p>
+              <p className="text-amber-700 text-sm mb-4">Mekanik telah menyelesaikan inspeksi unit ini. Silakan periksa hasil temuan dan foto bukti di atas, lalu beri persetujuan untuk ditayangkan ke publik atau minta perbaikan jika ada kesalahan.</p>
               <div className="flex items-center gap-3">
                 <button 
                   type="button"
@@ -565,7 +565,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                   disabled={saving}
                   className="bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2"
                 >
-                  <XCircle size={18} /> Kembalikan ke Mekanik
+                  <XCircle size={18} /> Minta Perbaikan ke Mekanik
                 </button>
               </div>
             </div>
@@ -584,7 +584,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                   onClick={() => setShowRevokeModal(true)}
                   className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                 >
-                  Tarik Kembali (Revoke)
+                  Tarik Kembali Persetujuan
                 </button>
               )}
             </div>
@@ -592,7 +592,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
 
           {session.status === "REJECTED" && (
             <div className="bg-red-50 border border-red-200 p-6 rounded-xl mt-8">
-              <h3 className="font-bold text-red-800 text-lg mb-1 flex items-center gap-2"><XCircle size={20}/> Sesi Dikembalikan</h3>
+              <h3 className="font-bold text-red-800 text-lg mb-1 flex items-center gap-2"><XCircle size={20}/> Sesi Dikembalikan ke Mekanik</h3>
               <p className="text-red-700 text-sm mb-2">Dikembalikan oleh <span className="font-bold">{session.rejectedByName || "Admin"}</span> pada {new Date(session.rejectedAt).toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" })}</p>
               <div className="bg-white p-3 rounded-lg border border-red-100 text-sm italic text-red-800">
                 "{session.rejectionNote}"
@@ -617,12 +617,12 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
       {showRejectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Kembalikan ke Mekanik</h3>
-            <p className="text-gray-500 text-sm mb-4">Sesi ini akan dikembalikan ke status REJECTED dan eksposur publik (jika ada) ditangguhkan. Mekanik harus merevisi dan mengirim ulang.</p>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Minta Perbaikan ke Mekanik</h3>
+            <p className="text-gray-500 text-sm mb-4">Laporan inspeksi ini akan dikembalikan kepada mekanik untuk diperbaiki. Hasil inspeksi tidak akan ditayangkan ke pembeli sebelum diperbaiki dan disetujui kembali.</p>
             <textarea 
               value={rejectNote}
               onChange={(e) => setRejectNote(e.target.value)}
-              placeholder="Catatan perbaikan untuk mekanik wajib diisi..."
+              placeholder="Tuliskan catatan detail bagian yang perlu diperbaiki (misal: foto spakbor buram, mohon diunggah ulang)..."
               className="w-full border border-gray-300 rounded-lg p-3 text-sm min-h-[100px] mb-4 focus:ring-2 focus:ring-red-500 focus:border-red-500"
             />
             <div className="flex items-center justify-end gap-3">
@@ -639,7 +639,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                 disabled={saving || !rejectNote.trim()}
                 className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               >
-                {saving ? "Memproses..." : "Konfirmasi Tolak"}
+                {saving ? "Memproses..." : "Kirim Catatan Perbaikan"}
               </button>
             </div>
           </div>
@@ -650,12 +650,12 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
       {showRevokeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Tarik Kembali (Revoke) Persetujuan</h3>
-            <p className="text-gray-500 text-sm mb-4">Sesi akan kembali ke status COMPLETED dan foto bukti tidak akan bisa diakses publik. Persetujuan ulang akan diperlukan.</p>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Tarik Kembali Persetujuan</h3>
+            <p className="text-gray-500 text-sm mb-4">Status persetujuan akan dibatalkan dan laporan inspeksi akan disembunyikan sementara dari halaman publik hingga disetujui kembali.</p>
             <textarea 
               value={revokeNote}
               onChange={(e) => setRevokeNote(e.target.value)}
-              placeholder="Alasan penarikan persetujuan wajib diisi..."
+              placeholder="Tuliskan alasan penarikan persetujuan ini..."
               className="w-full border border-gray-300 rounded-lg p-3 text-sm min-h-[100px] mb-4 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
             />
             <div className="flex items-center justify-end gap-3">
@@ -672,7 +672,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                 disabled={saving || !revokeNote.trim()}
                 className="px-4 py-2 bg-amber-600 text-white hover:bg-amber-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               >
-                {saving ? "Memproses..." : "Konfirmasi Revoke"}
+                {saving ? "Memproses..." : "Konfirmasi Penarikan"}
               </button>
             </div>
           </div>
