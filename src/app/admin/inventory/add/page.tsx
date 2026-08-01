@@ -89,8 +89,6 @@ export default function AddMotorPage() {
     getBranches().then(setBranches);
   }, []);
 
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
   // Auto-Save Draft
   useEffect(() => {
     const draft = localStorage.getItem("addMotorDraftV2");
@@ -578,9 +576,11 @@ export default function AddMotorPage() {
                         ref={(el) => { if (el) fileInputRefs.current[index] = el; }}
                         onChange={(e) => handleImageUpload(e, index)}
                       />
-                    </div>
                     <div className="text-center">
                       <span className="text-xs font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded-full">{imageLabels[index] || `Foto ${index+1}`}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="space-y-2 sm:col-span-2 mt-4 pt-4 border-t border-[var(--border)]">
