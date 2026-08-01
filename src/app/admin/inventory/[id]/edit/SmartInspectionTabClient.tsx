@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AlertCircle, CheckCircle, Info, Save, Wrench, XCircle, ChevronDown, ChevronUp, Upload, Check } from "lucide-react";
+import { AlertCircle, AlertTriangle, Camera, CheckCircle, Info, Save, Wrench, XCircle, ChevronDown, ChevronUp, Upload, Check, Trash2 } from "lucide-react";
 import { 
   getInspectionPackage, 
   createInspectionSession, 
@@ -22,6 +22,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [evidences, setEvidences] = useState<Record<string, File>>({});
+  const [evidencePreviews, setEvidencePreviews] = useState<Record<string, string>>({});
   
   const [rejectNote, setRejectNote] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -46,7 +47,6 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
         const catsMap = new Map<string, any>();
         sess.snapshot.forEach((snap: any) => {
           if (!catsMap.has(snap.categoryName)) {
-            // Find category weight from the linked package if possible, otherwise just set to 0 for UI
             const pkgCat = sess.package?.categories?.find((c: any) => c.name === snap.categoryName);
             catsMap.set(snap.categoryName, {
               name: snap.categoryName,
@@ -63,13 +63,13 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
         // Map existing items to answers state
         const initialAnswers: Record<string, any> = {};
         sess.items.forEach((item: any) => {
-          // Using packageItemId to link Answer -> Snapshot
           initialAnswers[item.packageItem.itemKey] = {
             packageItemId: item.packageItemId,
             answer: item.answer,
             status: item.status,
             score: item.score,
-            notes: item.notes || ""
+            notes: item.notes || "",
+            evidenceUrl: item.evidence?.[0]?.storagePath || null
           };
         });
         setAnswers(initialAnswers);
@@ -78,10 +78,9 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
           setExpandedGroup(catsArray[0].name);
         }
       } else {
-        // Load default package for new session
         const defaultPkg = await getInspectionPackage();
         if (defaultPkg) {
-          setPackages([defaultPkg]); // For simplicity, we just use the default or we could fetch all
+          setPackages([defaultPkg]);
           setSelectedPackageId(defaultPkg.id);
         }
       }
@@ -109,9 +108,6 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
   const handleAnswerSelect = (snapItem: any, status: string, answerText: string) => {
     if (isReadOnly || (session && session.status === "COMPLETED")) return;
     
-    // We need packageItemId, which we can find from session.package.categories
-    // Because snapshot doesn't hold the packageItemId natively, wait!
-    // We need packageItemId to save it. Let's find it from the package.
     const pkgCat = session.package.categories.find((c: any) => c.name === snapItem.categoryName);
     const pkgItem = pkgCat?.items.find((i: any) => i.itemKey === snapItem.itemKey);
 
@@ -146,7 +142,48 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
     if (isReadOnly || (session && session.status === "COMPLETED")) return;
     if (file) {
       setEvidences(prev => ({ ...prev, [itemKey]: file }));
+      const previewUrl = URL.createObjectURL(file);
+      setEvidencePreviews(prev => ({ ...prev, [itemKey]: previewUrl }));
+    } else {
+      setEvidences(prev => {
+        const next = { ...prev };
+        delete next[itemKey];
+        return next;
+      });
+      setEvidencePreviews(prev => {
+        const next = { ...prev };
+        delete next[itemKey];
+        return next;
+      });
+      setAnswers(prev => ({
+        ...prev,
+        [itemKey]: {
+          ...(prev[itemKey] || {}),
+          evidenceUrl: null
+        }
+      }));
     }
+  };
+
+  const uploadAndPrepareItems = async () => {
+    const itemsCopy = { ...answers };
+    for (const [itemKey, file] of Object.entries(evidences)) {
+      if (file && session) {
+        try {
+          let url = await uploadInspectionEvidence(file, session.id, itemKey);
+          if (!url) {
+            // Fallback for mock/local environment if Supabase storage isn't active
+            url = evidencePreviews[itemKey] || null;
+          }
+          if (url && itemsCopy[itemKey]) {
+            itemsCopy[itemKey].evidenceUrl = url;
+          }
+        } catch (e) {
+          console.error("Gagal mengunggah foto bukti:", itemKey, e);
+        }
+      }
+    }
+    return Object.values(itemsCopy);
   };
 
   const handleSaveDraft = async () => {
@@ -155,10 +192,11 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
     setErrorMsg("");
     setSuccessMsg("");
     try {
-      const itemsToSave = Object.values(answers);
+      const itemsToSave = await uploadAndPrepareItems();
       await saveInspectionDraft(session.id, itemsToSave);
       setSuccessMsg("Draft berhasil disimpan.");
       setTimeout(() => setSuccessMsg(""), 3000);
+      await loadData();
     } catch (e: any) {
       setErrorMsg(e.message);
     } finally {
@@ -204,9 +242,8 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
           setExpandedGroup(cat.name);
           return;
         }
-        if ((ans.status === "PERLU_PERBAIKAN" || ans.status === "RUSAK") && !evidences[snap.itemKey]) {
-          // Check if already has evidence in DB
-          const existingItem = session.items.find((i:any) => i.packageItem.itemKey === snap.itemKey);
+        if ((ans.status === "PERLU_PERBAIKAN" || ans.status === "RUSAK") && !evidences[snap.itemKey] && !ans.evidenceUrl) {
+          const existingItem = session.items?.find((i:any) => i.packageItem?.itemKey === snap.itemKey);
           if (!existingItem?.evidence?.length) {
             setErrorMsg(`Foto bukti wajib diunggah untuk status PERBAIKAN/RUSAK pada "${snap.question}".`);
             setExpandedGroup(cat.name);
@@ -220,11 +257,8 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
     setErrorMsg("");
     
     try {
-      const itemsToSave = Object.values(answers);
+      const itemsToSave = await uploadAndPrepareItems();
       await saveInspectionDraft(session.id, itemsToSave);
-      
-      // Realistically upload files here via a Server Action
-      
       await completeInspectionSession(session.id);
       setSuccessMsg("Inspeksi diselesaikan! Menunggu approval Supervisor.");
       await loadData();
@@ -232,6 +266,23 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
       setErrorMsg(e.message || "Gagal menyelesaikan inspeksi.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const toggleGroup = (categoryName: string) => {
+    if (expandedGroup === categoryName) {
+      setExpandedGroup(null);
+    } else {
+      setExpandedGroup(categoryName);
+      setTimeout(() => {
+        const safeId = `category-group-${categoryName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        const el = document.getElementById(safeId);
+        if (el) {
+          const yOffset = -20;
+          const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 120);
     }
   };
 
@@ -309,10 +360,14 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
 
           <div className="space-y-4">
             {snapshotCategories.map((cat) => (
-              <div key={cat.name} className="border border-[var(--border)] rounded-xl overflow-hidden bg-white">
+              <div 
+                key={cat.name} 
+                id={`category-group-${cat.name.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                className="border border-[var(--border)] rounded-xl overflow-hidden bg-white scroll-mt-6"
+              >
                 <button
                   type="button"
-                  onClick={() => setExpandedGroup(expandedGroup === cat.name ? null : cat.name)}
+                  onClick={() => toggleGroup(cat.name)}
                   className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -367,17 +422,85 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                           </div>
 
                           {currentAns && (currentAns.status === "PERLU_PERBAIKAN" || currentAns.status === "RUSAK") && (
-                            <div className={`mb-4 p-3 rounded-lg border flex items-center justify-between ${session.status === "COMPLETED" ? "bg-gray-50 border-gray-200 opacity-80" : "bg-orange-50 border-orange-200"}`}>
-                              <div className={`flex items-center gap-2 text-sm ${session.status === "COMPLETED" ? "text-gray-500" : "text-orange-800"}`}>
-                                <Upload size={16} /> <span>Wajib unggah foto bukti</span>
+                            <div className={`mb-4 p-4 rounded-xl border space-y-3 ${
+                              session.status === "COMPLETED" 
+                                ? "bg-gray-50 border-gray-200 opacity-80" 
+                                : "bg-amber-50/80 border-amber-200"
+                            }`}>
+                              <div className="flex items-start gap-2.5">
+                                <AlertTriangle size={18} className={session.status === "COMPLETED" ? "text-gray-400 mt-0.5" : "text-amber-600 mt-0.5 flex-shrink-0"} />
+                                <div>
+                                  <p className={`text-xs font-bold uppercase tracking-wide ${session.status === "COMPLETED" ? "text-gray-600" : "text-amber-900"}`}>
+                                    Dokumentasi Foto Bukti Temuan (Wajib)
+                                  </p>
+                                  <p className={`text-xs mt-0.5 leading-relaxed ${session.status === "COMPLETED" ? "text-gray-500" : "text-amber-800"}`}>
+                                    Item terindikasi bermasalah ({currentAns.status.replace("_", " ")}). Wajib lampirkan 1 foto bukti kondisi nyata untuk transparansi konsumen.
+                                  </p>
+                                </div>
                               </div>
-                              <input 
-                                type="file" 
-                                accept="image/*"
-                                onChange={(e) => handleFileChange(snap.itemKey, e.target.files?.[0] || null)}
-                                className={`text-sm ${session.status === "COMPLETED" ? "cursor-not-allowed text-gray-400" : ""}`}
-                                disabled={session.status === "COMPLETED"}
-                              />
+
+                              <div className="pt-2 border-t border-amber-200/60 flex flex-wrap items-center gap-3">
+                                <input 
+                                  id={`file-input-${snap.itemKey}`}
+                                  type="file" 
+                                  accept="image/*"
+                                  onChange={(e) => handleFileChange(snap.itemKey, e.target.files?.[0] || null)}
+                                  className="hidden"
+                                  disabled={session.status === "COMPLETED"}
+                                />
+
+                                {evidencePreviews[snap.itemKey] || currentAns.evidenceUrl ? (
+                                  <div className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-amber-300 shadow-sm">
+                                    <img 
+                                      src={evidencePreviews[snap.itemKey] || currentAns.evidenceUrl} 
+                                      alt="Foto bukti" 
+                                      className="w-14 h-14 object-cover rounded-md border border-gray-200 flex-shrink-0"
+                                    />
+                                    <div className="text-xs space-y-1">
+                                      <span className="font-bold text-green-700 flex items-center gap-1">
+                                        <CheckCircle size={13} /> Foto Bukti Terlampir
+                                      </span>
+                                      {evidences[snap.itemKey] && (
+                                        <p className="text-gray-500 text-[11px] truncate max-w-[180px]">
+                                          {evidences[snap.itemKey].name}
+                                        </p>
+                                      )}
+                                      {session.status !== "COMPLETED" && (
+                                        <div className="flex items-center gap-3 pt-0.5">
+                                          <label 
+                                            htmlFor={`file-input-${snap.itemKey}`}
+                                            className="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline cursor-pointer"
+                                          >
+                                            Ganti Foto
+                                          </label>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleFileChange(snap.itemKey, null)}
+                                            className="text-[11px] font-bold text-red-600 hover:text-red-800 flex items-center gap-0.5"
+                                          >
+                                            <Trash2 size={11} /> Hapus
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <label 
+                                    htmlFor={`file-input-${snap.itemKey}`}
+                                    className={`inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-semibold text-xs rounded-lg shadow-sm cursor-pointer transition-colors ${
+                                      session.status === "COMPLETED" ? "opacity-50 cursor-not-allowed pointer-events-none" : ""
+                                    }`}
+                                  >
+                                    <Camera size={15} /> Pilih / Ambil Foto Bukti
+                                  </label>
+                                )}
+
+                                {!evidencePreviews[snap.itemKey] && !currentAns.evidenceUrl && (
+                                  <span className="text-xs text-amber-700 font-medium italic">
+                                    * Belum ada foto yang dipilih
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           )}
 

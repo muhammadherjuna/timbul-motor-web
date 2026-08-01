@@ -78,26 +78,71 @@ export async function createInspectionSession(motorId: string, packageId: string
 }
 
 export async function saveInspectionDraft(sessionId: string, answers: any[]) {
-  // answers format: [{ packageItemId: "...", answer: "...", status: "...", notes: "..." }]
+  // answers format: [{ packageItemId: "...", answer: "...", status: "...", notes: "...", evidenceUrl?: string }]
   
-  await prisma.inspectionItem.deleteMany({
-    where: { sessionId }
-  });
+  for (const a of answers) {
+    const existing = await prisma.inspectionItem.findFirst({
+      where: { sessionId, packageItemId: a.packageItemId }
+    });
 
-    if (answers.length > 0) {
-      await prisma.inspectionItem.createMany({
-        data: answers.map(a => ({
+    let itemId = existing?.id;
+
+    if (existing) {
+      await prisma.inspectionItem.update({
+        where: { id: existing.id },
+        data: {
+          answer: a.answer,
+          status: a.status,
+          score: SCORE_MAP[a.status] ?? null,
+          notes: a.notes,
+        }
+      });
+    } else {
+      const created = await prisma.inspectionItem.create({
+        data: {
           sessionId,
           packageItemId: a.packageItemId,
           answer: a.answer,
           status: a.status,
           score: SCORE_MAP[a.status] ?? null,
           notes: a.notes,
-        }))
+        }
       });
+      itemId = created.id;
     }
-    
-    await prisma.inspectionSession.update({
+
+    if (a.evidenceUrl && itemId) {
+      const existingEv = await prisma.inspectionEvidence.findFirst({
+        where: { inspectionItemId: itemId }
+      });
+      if (existingEv) {
+        await prisma.inspectionEvidence.update({
+          where: { id: existingEv.id },
+          data: { storagePath: a.evidenceUrl }
+        });
+      } else {
+        await prisma.inspectionEvidence.create({
+          data: {
+            inspectionItemId: itemId,
+            storagePath: a.evidenceUrl,
+            isPublic: false
+          }
+        });
+      }
+    }
+  }
+
+  const answerPackageItemIds = answers.map(a => a.packageItemId);
+  if (answerPackageItemIds.length > 0) {
+    await prisma.inspectionItem.deleteMany({
+      where: {
+        sessionId,
+        packageItemId: { notIn: answerPackageItemIds }
+      }
+    });
+  }
+
+  await prisma.inspectionSession.update({
     where: { id: sessionId },
     data: { status: "IN_PROGRESS" }
   });
