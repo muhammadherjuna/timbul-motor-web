@@ -11,7 +11,7 @@ import {
 } from "@/lib/inspection-actions";
 import { uploadInspectionEvidence } from "@/lib/inspection-storage";
 
-export default function SmartInspectionTabClient({ motorId, isReadOnly = false }: { motorId: string, isReadOnly?: boolean }) {
+export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", isReadOnly = false }: { motorId: string, userRole?: string, isReadOnly?: boolean }) {
   const [packages, setPackages] = useState<any[]>([]);
   const [selectedPackageId, setSelectedPackageId] = useState<string>("");
   const [session, setSession] = useState<any>(null);
@@ -23,6 +23,11 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
   const [successMsg, setSuccessMsg] = useState("");
   const [evidences, setEvidences] = useState<Record<string, File>>({});
   
+  const [rejectNote, setRejectNote] = useState("");
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [revokeNote, setRevokeNote] = useState("");
+  const [showRevokeModal, setShowRevokeModal] = useState(false);
+  
   // Derived state to group snapshots by category name
   const [snapshotCategories, setSnapshotCategories] = useState<{name: string, weight: number, items: any[]}[]>([]);
 
@@ -33,7 +38,7 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
   const loadData = async () => {
     setLoading(true);
     try {
-      const sess = await getLatestInspectionSession(motorId);
+      const sess: any = await getLatestInspectionSession(motorId);
       if (sess) {
         setSession(sess);
         
@@ -102,7 +107,7 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
   };
 
   const handleAnswerSelect = (snapItem: any, status: string, answerText: string) => {
-    if (isReadOnly || (session && (session.status === "COMPLETED" || session.status === "APPROVED"))) return;
+    if (isReadOnly || (session && session.status === "COMPLETED")) return;
     
     // We need packageItemId, which we can find from session.package.categories
     // Because snapshot doesn't hold the packageItemId natively, wait!
@@ -127,7 +132,7 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
   };
 
   const handleNoteChange = (itemKey: string, note: string) => {
-    if (isReadOnly || (session && (session.status === "COMPLETED" || session.status === "APPROVED"))) return;
+    if (isReadOnly || (session && session.status === "COMPLETED")) return;
     setAnswers(prev => ({
       ...prev,
       [itemKey]: {
@@ -138,7 +143,7 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
   };
 
   const handleFileChange = (itemKey: string, file: File | null) => {
-    if (isReadOnly || (session && (session.status === "COMPLETED" || session.status === "APPROVED"))) return;
+    if (isReadOnly || (session && session.status === "COMPLETED")) return;
     if (file) {
       setEvidences(prev => ({ ...prev, [itemKey]: file }));
     }
@@ -154,8 +159,34 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
       await saveInspectionDraft(session.id, itemsToSave);
       setSuccessMsg("Draft berhasil disimpan.");
       setTimeout(() => setSuccessMsg(""), 3000);
-    } catch (e) {
-      setErrorMsg("Gagal menyimpan draft.");
+    } catch (e: any) {
+      setErrorMsg(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSupervisorAction = async (action: "APPROVE" | "REJECT" | "REVOKE", note?: string) => {
+    if (!session) return;
+    setSaving(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await fetch(`/api/inspections/${session.id}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, note })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memproses.");
+      setSuccessMsg(`Sesi berhasil di-${action.toLowerCase()}`);
+      setShowRejectModal(false);
+      setShowRevokeModal(false);
+      setRejectNote("");
+      setRevokeNote("");
+      await loadData();
+    } catch (e: any) {
+      setErrorMsg(e.message);
     } finally {
       setSaving(false);
     }
@@ -307,7 +338,7 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
                           
                           <div className="grid sm:grid-cols-3 gap-3 mb-4">
                             {options.map((opt, i) => {
-                              const isDisabled = session.status === "COMPLETED" || session.status === "APPROVED";
+                              const isDisabled = session.status === "COMPLETED"; // APPROVED is no longer disabled per Rule 2
                               return (
                               <label 
                                 key={i} 
@@ -336,16 +367,16 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
                           </div>
 
                           {currentAns && (currentAns.status === "PERLU_PERBAIKAN" || currentAns.status === "RUSAK") && (
-                            <div className={`mb-4 p-3 rounded-lg border flex items-center justify-between ${session.status === "COMPLETED" || session.status === "APPROVED" ? "bg-gray-50 border-gray-200 opacity-80" : "bg-orange-50 border-orange-200"}`}>
-                              <div className={`flex items-center gap-2 text-sm ${session.status === "COMPLETED" || session.status === "APPROVED" ? "text-gray-500" : "text-orange-800"}`}>
+                            <div className={`mb-4 p-3 rounded-lg border flex items-center justify-between ${session.status === "COMPLETED" ? "bg-gray-50 border-gray-200 opacity-80" : "bg-orange-50 border-orange-200"}`}>
+                              <div className={`flex items-center gap-2 text-sm ${session.status === "COMPLETED" ? "text-gray-500" : "text-orange-800"}`}>
                                 <Upload size={16} /> <span>Wajib unggah foto bukti</span>
                               </div>
                               <input 
                                 type="file" 
                                 accept="image/*"
                                 onChange={(e) => handleFileChange(snap.itemKey, e.target.files?.[0] || null)}
-                                className={`text-sm ${session.status === "COMPLETED" || session.status === "APPROVED" ? "cursor-not-allowed text-gray-400" : ""}`}
-                                disabled={session.status === "COMPLETED" || session.status === "APPROVED"}
+                                className={`text-sm ${session.status === "COMPLETED" ? "cursor-not-allowed text-gray-400" : ""}`}
+                                disabled={session.status === "COMPLETED"}
                               />
                             </div>
                           )}
@@ -355,9 +386,9 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
                               placeholder="Catatan tambahan (opsional)..." 
                               value={currentAns?.notes || ""}
                               onChange={(e) => handleNoteChange(snap.itemKey, e.target.value)}
-                              className={`w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm ${session.status === "COMPLETED" || session.status === "APPROVED" ? "cursor-not-allowed bg-gray-50 text-gray-500" : ""}`}
+                              className={`w-full px-3 py-2 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--primary)] text-sm ${session.status === "COMPLETED" ? "cursor-not-allowed bg-gray-50 text-gray-500" : ""}`}
                               rows={2}
-                              disabled={session.status === "COMPLETED" || session.status === "APPROVED"}
+                              disabled={session.status === "COMPLETED"}
                             />
                           </div>
                         </div>
@@ -369,7 +400,7 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
             ))}
           </div>
 
-          {!isReadOnly && (session.status === "DRAFT" || session.status === "IN_PROGRESS" || session.status === "REOPENED") && (
+          {!isReadOnly && (session.status === "DRAFT" || session.status === "IN_PROGRESS" || session.status === "REOPENED" || session.status === "REJECTED" || session.status === "APPROVED") && (
             <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
               <button 
                 type="button" 
@@ -390,7 +421,60 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
             </div>
           )}
 
-          {isReadOnly && (
+          {/* Supervisor Actions */}
+          {(userRole === "SUPER_ADMIN" || userRole === "ADMIN") && session.status === "COMPLETED" && (
+            <div className="bg-amber-50 border border-amber-200 p-6 rounded-xl mt-8">
+              <h3 className="font-bold text-amber-800 text-lg mb-2 flex items-center gap-2"><CheckCircle size={20}/> Review Supervisor</h3>
+              <p className="text-amber-700 text-sm mb-4">Mekanik telah menyelesaikan inspeksi ini. Silakan review hasil di atas dan setujui untuk dipublikasikan, atau kembalikan jika ada kesalahan.</p>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => handleSupervisorAction("APPROVE")}
+                  disabled={saving}
+                  className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <CheckCircle size={18} /> Setujui & Publikasikan
+                </button>
+                <button 
+                  onClick={() => setShowRejectModal(true)}
+                  disabled={saving}
+                  className="bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <XCircle size={18} /> Kembalikan ke Mekanik
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Audit Trail & Revoke */}
+          {session.status === "APPROVED" && (
+            <div className="bg-green-50 border border-green-200 p-6 rounded-xl mt-8 flex items-start justify-between">
+              <div>
+                <h3 className="font-bold text-green-800 text-lg mb-1 flex items-center gap-2"><CheckCircle size={20}/> Telah Disetujui</h3>
+                <p className="text-green-700 text-sm">Disetujui oleh <span className="font-bold">{session.approvedByName || "Admin"}</span> pada {new Date(session.approvedAt).toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+              </div>
+              {(userRole === "SUPER_ADMIN" || userRole === "ADMIN") && (
+                <button 
+                  onClick={() => setShowRevokeModal(true)}
+                  className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                >
+                  Tarik Kembali (Revoke)
+                </button>
+              )}
+            </div>
+          )}
+
+          {session.status === "REJECTED" && (
+            <div className="bg-red-50 border border-red-200 p-6 rounded-xl mt-8">
+              <h3 className="font-bold text-red-800 text-lg mb-1 flex items-center gap-2"><XCircle size={20}/> Sesi Dikembalikan</h3>
+              <p className="text-red-700 text-sm mb-2">Dikembalikan oleh <span className="font-bold">{session.rejectedByName || "Admin"}</span> pada {new Date(session.rejectedAt).toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" })}</p>
+              <div className="bg-white p-3 rounded-lg border border-red-100 text-sm italic text-red-800">
+                "{session.rejectionNote}"
+              </div>
+              <p className="text-red-600 text-xs mt-3">Silakan perbaiki temuan yang dimaksud lalu tekan Selesaikan Sesi kembali.</p>
+            </div>
+          )}
+
+          {isReadOnly && !(userRole === "SUPER_ADMIN" || userRole === "ADMIN") && (
             <div className="bg-blue-50 text-blue-700 p-4 rounded-xl border border-blue-200 mt-8 flex items-center gap-3">
               <Info size={24} />
               <div>
@@ -399,6 +483,68 @@ export default function SmartInspectionTabClient({ motorId, isReadOnly = false }
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Kembalikan ke Mekanik</h3>
+            <p className="text-gray-500 text-sm mb-4">Sesi ini akan dikembalikan ke status REJECTED dan eksposur publik (jika ada) ditangguhkan. Mekanik harus merevisi dan mengirim ulang.</p>
+            <textarea 
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+              placeholder="Catatan perbaikan untuk mekanik wajib diisi..."
+              className="w-full border border-gray-300 rounded-lg p-3 text-sm min-h-[100px] mb-4 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            />
+            <div className="flex items-center justify-end gap-3">
+              <button 
+                onClick={() => { setShowRejectModal(false); setRejectNote(""); }}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={() => handleSupervisorAction("REJECT", rejectNote)}
+                disabled={saving || !rejectNote.trim()}
+                className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {saving ? "Memproses..." : "Konfirmasi Tolak"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Revoke Modal */}
+      {showRevokeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Tarik Kembali (Revoke) Persetujuan</h3>
+            <p className="text-gray-500 text-sm mb-4">Sesi akan kembali ke status COMPLETED dan foto bukti tidak akan bisa diakses publik. Persetujuan ulang akan diperlukan.</p>
+            <textarea 
+              value={revokeNote}
+              onChange={(e) => setRevokeNote(e.target.value)}
+              placeholder="Alasan penarikan persetujuan wajib diisi..."
+              className="w-full border border-gray-300 rounded-lg p-3 text-sm min-h-[100px] mb-4 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            />
+            <div className="flex items-center justify-end gap-3">
+              <button 
+                onClick={() => { setShowRevokeModal(false); setRevokeNote(""); }}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={() => handleSupervisorAction("REVOKE", revokeNote)}
+                disabled={saving || !revokeNote.trim()}
+                className="px-4 py-2 bg-amber-600 text-white hover:bg-amber-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {saving ? "Memproses..." : "Konfirmasi Revoke"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

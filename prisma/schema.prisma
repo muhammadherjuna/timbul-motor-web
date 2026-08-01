@@ -17,9 +17,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  inspections MotorInspection[]
-  sales       MotorPricing[]
-  transactions Transaction[] @relation("UserTransactions")
+  inspections  MotorInspection[]
+  sales        MotorPricing[]
+  transactions Transaction[]     @relation("UserTransactions")
 }
 
 model Supplier {
@@ -66,12 +66,12 @@ model Motor {
   updatedAt DateTime @updatedAt
 
   // Relations
-  document   MotorDocument?
-  history    MotorHistory?
-  inspection MotorInspection?
-  pricing    MotorPricing?
+  document           MotorDocument?
+  history            MotorHistory?
+  inspection         MotorInspection?
+  pricing            MotorPricing?
   inspectionSessions InspectionSession[]
-  transaction Transaction?
+  transaction        Transaction?
 }
 
 model MotorDocument {
@@ -120,11 +120,11 @@ model MotorInspection {
   motorId String @unique
   motor   Motor  @relation(fields: [motorId], references: [id], onDelete: Cascade)
 
-  inspectorId String?
-  inspector   User?   @relation(fields: [inspectorId], references: [id], onDelete: SetNull)
+  inspectorId    String?
+  inspector      User?   @relation(fields: [inspectorId], references: [id], onDelete: SetNull)
   inspector_name String?
 
-  inspection_grade String?
+  inspection_grade  String?
   engine_start      String?
   engine_sound      String?
   cvt_chain         String?
@@ -138,7 +138,7 @@ model MotorInspection {
   body_condition    String?
   engine_condition  String?
 
-  archived          Boolean @default(false)
+  archived Boolean @default(false)
 }
 
 model MotorPricing {
@@ -163,11 +163,11 @@ model MotorPricing {
   supplier      Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   supplier_name String?
 
-  salesId    String?
-  sales      User?   @relation(fields: [salesId], references: [id], onDelete: SetNull)
-  sales_rep  String?
+  salesId   String?
+  sales     User?   @relation(fields: [salesId], references: [id], onDelete: SetNull)
+  sales_rep String?
 
-  internal_notes   String?
+  internal_notes String?
 }
 
 model Branch {
@@ -207,7 +207,7 @@ model InspectionPackage {
 }
 
 model InspectionCategory {
-  id         String  @id @default(uuid())
+  id         String            @id @default(uuid())
   packageId  String
   package    InspectionPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
   name       String
@@ -218,33 +218,33 @@ model InspectionCategory {
 }
 
 model InspectionPackageItem {
-  id             String  @id @default(uuid())
+  id             String             @id @default(uuid())
   categoryId     String
   category       InspectionCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  itemKey        String  // unique slug
+  itemKey        String // unique slug
   question       String
   weight         Float
-  isSafetyItem   Boolean @default(false)
-  isCriticalItem Boolean @default(false)
-  isActive       Boolean @default(true)
+  isSafetyItem   Boolean            @default(false)
+  isCriticalItem Boolean            @default(false)
+  isActive       Boolean            @default(true)
   orderIndex     Int
 
   inspectionItems InspectionItem[]
 }
 
 model InspectionSession {
-  id          String  @id @default(uuid())
-  motorId     String
-  motor       Motor   @relation(fields: [motorId], references: [id], onDelete: Cascade)
-  packageId   String
-  package     InspectionPackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  id        String            @id @default(uuid())
+  motorId   String
+  motor     Motor             @relation(fields: [motorId], references: [id], onDelete: Cascade)
+  packageId String
+  package   InspectionPackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
 
-  status      String  // DRAFT | IN_PROGRESS | COMPLETED | APPROVED | REJECTED | REOPENED
+  status String // DRAFT | IN_PROGRESS | COMPLETED | APPROVED | REJECTED | REOPENED
 
   totalScore      Float?
-  grade           String?  // A | B | C | D
-  hasCritical     Boolean  @default(false)
-  saleEligibility String?  // LAYAK_JUAL | PERLU_PERBAIKAN | TIDAK_LAYAK
+  grade           String? // A | B | C | D
+  hasCritical     Boolean @default(false)
+  saleEligibility String? // LAYAK_JUAL | PERLU_PERBAIKAN | TIDAK_LAYAK
 
   inspectorId   String?
   inspectorName String?
@@ -254,18 +254,35 @@ model InspectionSession {
   approvalNote   String?
   approvedAt     DateTime?
 
+  rejectedById   String?
+  rejectedByName String?
+  rejectionNote  String?
+  rejectedAt     DateTime?
+
   startedAt   DateTime  @default(now())
   completedAt DateTime?
 
   items    InspectionItem[]
   snapshot InspectionSessionItemSnapshot[]
+  events   InspectionSessionEvent[]
+}
+
+model InspectionSessionEvent {
+  id        String            @id @default(uuid())
+  sessionId String
+  session   InspectionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actorName String?
+  type      String            // e.g. "APPROVED", "REJECTED", "REVOKED", "COMPLETED", "REOPENED"
+  note      String?
+  createdAt DateTime          @default(now())
 }
 
 model InspectionSessionItemSnapshot {
-  id             String  @id @default(uuid())
-  sessionId      String
-  session        InspectionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
+  id        String            @id @default(uuid())
+  sessionId String
+  session   InspectionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
   // Frozen data
   itemKey        String
   question       String
@@ -277,15 +294,15 @@ model InspectionSessionItemSnapshot {
 }
 
 model InspectionItem {
-  id             String  @id @default(uuid())
-  sessionId      String
-  session        InspectionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  packageItemId  String
-  packageItem    InspectionPackageItem @relation(fields: [packageItemId], references: [id], onDelete: Restrict)
+  id            String                @id @default(uuid())
+  sessionId     String
+  session       InspectionSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  packageItemId String
+  packageItem   InspectionPackageItem @relation(fields: [packageItemId], references: [id], onDelete: Restrict)
 
-  answer     String?
-  status     ItemAnswerStatus @default(BELUM_DIPERIKSA)
-  score      Float?
+  answer String?
+  status ItemAnswerStatus @default(BELUM_DIPERIKSA)
+  score  Float?
 
   notes        String?
   repairStatus String    @default("PERLU_PERBAIKAN") // PERLU_PERBAIKAN | SUDAH_DIPERBAIKI | SEBAGAIMANA_ADANYA
@@ -295,10 +312,23 @@ model InspectionItem {
   reVerifiedBy String?
 
   evidence InspectionEvidence[]
+  history  InspectionItemHistory[]
+}
+
+model InspectionItemHistory {
+  id               String           @id @default(uuid())
+  inspectionItemId String
+  inspectionItem   InspectionItem   @relation(fields: [inspectionItemId], references: [id], onDelete: Cascade)
+  oldAnswer        String?
+  oldStatus        ItemAnswerStatus
+  newAnswer        String?
+  newStatus        ItemAnswerStatus
+  changedBy        String?
+  changedAt        DateTime         @default(now())
 }
 
 model InspectionEvidence {
-  id               String  @id @default(uuid())
+  id               String         @id @default(uuid())
   inspectionItemId String
   inspectionItem   InspectionItem @relation(fields: [inspectionItemId], references: [id], onDelete: Cascade)
 
@@ -326,31 +356,31 @@ model Customer {
 }
 
 model Transaction {
-  id              String   @id @default(uuid())
-  invoiceNumber   String   @unique
-  date            DateTime @default(now())
-  
+  id            String   @id @default(uuid())
+  invoiceNumber String   @unique
+  date          DateTime @default(now())
+
   // Relasi
-  customerId      String
-  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  motorId         String   @unique
-  motor           Motor    @relation(fields: [motorId], references: [id], onDelete: Restrict)
-  salesId         String?
-  sales           User?    @relation("UserTransactions", fields: [salesId], references: [id], onDelete: SetNull)
-  
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  motorId    String   @unique
+  motor      Motor    @relation(fields: [motorId], references: [id], onDelete: Restrict)
+  salesId    String?
+  sales      User?    @relation("UserTransactions", fields: [salesId], references: [id], onDelete: SetNull)
+
   // Detail Transaksi
-  paymentMethod   String   // CASH, CREDIT
-  totalAmount     Int
-  dpAmount        Int?
-  
+  paymentMethod String // CASH, CREDIT
+  totalAmount   Int
+  dpAmount      Int?
+
   // Detail Kredit
   leasingProvider String?
   tenor           Int?
   monthlyInstall  Int?
 
-  status          String   // PENDING, COMPLETED, CANCELLED
-  notes           String?
+  status String // PENDING, COMPLETED, CANCELLED
+  notes  String?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

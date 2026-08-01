@@ -27,7 +27,7 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
     id: motorData.id
   };
 
-  const activeSession = await getActiveInspectionSession(id);
+  const activeSession: any = await getActiveInspectionSession(id);
 
   const waMessage = encodeURIComponent(`Halo Timbul Motor, saya tertarik dengan ${motor.name} kode ${motor.code}. Apakah unit masih tersedia?`);
 
@@ -219,7 +219,7 @@ export default async function StokDetailPage({ params }: { params: Promise<{ id:
                     
                     <div className="text-xs text-gray-500 border-b border-gray-100 pb-3 flex justify-between">
                       <span>Inspektor: <strong className="text-gray-700">{activeSession.inspectorName}</strong></span>
-                      <span>Disetujui: <strong className="text-gray-700">{activeSession.approvedAt ? new Date(activeSession.approvedAt).toLocaleDateString('id-ID') : '-'}</strong></span>
+                      <span>Disetujui oleh <strong className="text-gray-700">{activeSession.approvedByName || "Admin"}</strong> pada <strong className="text-gray-700">{activeSession.approvedAt ? new Date(activeSession.approvedAt).toLocaleDateString('id-ID', { year: "numeric", month: "long", day: "numeric" }) : '-'}</strong></span>
                     </div>
 
                     {/* Non-Normal Findings with Inline Evidence */}
