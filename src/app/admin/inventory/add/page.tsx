@@ -576,6 +576,7 @@ export default function AddMotorPage() {
                         ref={(el) => { if (el) fileInputRefs.current[index] = el; }}
                         onChange={(e) => handleImageUpload(e, index)}
                       />
+                    </div>
                     <div className="text-center">
                       <span className="text-xs font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded-full">{imageLabels[index] || `Foto ${index+1}`}</span>
                     </div>
