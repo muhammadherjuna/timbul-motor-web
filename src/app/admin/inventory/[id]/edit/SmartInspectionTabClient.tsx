@@ -7,7 +7,10 @@ import {
   createInspectionSession, 
   getLatestInspectionSession,
   saveInspectionDraft,
-  completeInspectionSession
+  completeInspectionSession,
+  approveInspectionSession,
+  rejectInspectionSession,
+  revokeInspectionSession
 } from "@/lib/inspection-actions";
 import { uploadInspectionEvidence } from "@/lib/inspection-storage";
 
@@ -212,21 +215,29 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
     setErrorMsg("");
     setSuccessMsg("");
     try {
-      const res = await fetch(`/api/inspections/${session.id}/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, note })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal memproses.");
-      setSuccessMsg(`Sesi berhasil di-${action.toLowerCase()}`);
+      if (action === "APPROVE") {
+        await approveInspectionSession(session.id, "Admin / Supervisor", note);
+        setSuccessMsg("Hasil inspeksi berhasil disetujui dan dipublikasikan!");
+      } else if (action === "REJECT") {
+        await rejectInspectionSession(session.id, "Admin / Supervisor", note);
+        setSuccessMsg("Hasil inspeksi telah dikembalikan ke mekanik untuk diperbaiki.");
+      } else if (action === "REVOKE") {
+        await revokeInspectionSession(session.id);
+        setSuccessMsg("Persetujuan hasil inspeksi berhasil ditarik kembali.");
+      }
+      
       setShowRejectModal(false);
       setShowRevokeModal(false);
       setRejectNote("");
       setRevokeNote("");
+      
+      // Auto-hide success message after 4s
+      setTimeout(() => setSuccessMsg(""), 4000);
+      
       await loadData();
     } catch (e: any) {
-      setErrorMsg(e.message);
+      console.error(e);
+      setErrorMsg(e.message || "Gagal memproses persetujuan.");
     } finally {
       setSaving(false);
     }

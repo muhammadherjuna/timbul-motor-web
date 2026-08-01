@@ -246,7 +246,6 @@ export async function approveInspectionSession(sessionId: string, approvedByName
     data: {
       status: "APPROVED",
       approvedByName,
-      approvalNote: note,
       approvedAt: new Date()
     }
   });
@@ -258,16 +257,33 @@ export async function approveInspectionSession(sessionId: string, approvedByName
 }
 
 export async function rejectInspectionSession(sessionId: string, approvedByName: string = "Supervisor", note?: string) {
-  await prisma.inspectionSession.update({
+  const session = await prisma.inspectionSession.update({
     where: { id: sessionId },
     data: {
       status: "REJECTED",
-      approvedByName,
-      approvalNote: note,
-      approvedAt: new Date()
+      rejectedByName: approvedByName,
+      rejectionNote: note,
+      rejectedAt: new Date()
     }
   });
+  revalidatePath(`/admin/inventory/${session.motorId}/edit`);
   revalidatePath('/admin/inspections');
+  return { success: true };
+}
+
+export async function revokeInspectionSession(sessionId: string) {
+  const session = await prisma.inspectionSession.update({
+    where: { id: sessionId },
+    data: {
+      status: "COMPLETED",
+      approvedById: null,
+      approvedByName: null,
+      approvedAt: null
+    }
+  });
+  revalidatePath(`/admin/inventory/${session.motorId}/edit`);
+  revalidatePath('/admin/inspections');
+  revalidatePath(`/stok/${session.motorId}`);
   return { success: true };
 }
 
@@ -277,7 +293,6 @@ export async function reopenInspectionSession(sessionId: string, approvedByName:
     data: {
       status: "IN_PROGRESS",
       approvedByName,
-      approvalNote: note,
       grade: null,
       saleEligibility: null,
       totalScore: null,
