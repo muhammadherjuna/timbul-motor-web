@@ -535,7 +535,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
             ))}
           </div>
 
-          {!isReadOnly && (session.status === "DRAFT" || session.status === "IN_PROGRESS" || session.status === "REOPENED" || session.status === "REJECTED" || session.status === "APPROVED") && (
+          {!isReadOnly && (session.status === "DRAFT" || session.status === "IN_PROGRESS" || session.status === "REOPENED" || session.status === "REJECTED") && (
             <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
               <button 
                 type="button" 
