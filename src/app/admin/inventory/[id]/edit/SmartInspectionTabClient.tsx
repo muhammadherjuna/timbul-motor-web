@@ -552,6 +552,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
               <p className="text-amber-700 text-sm mb-4">Mekanik telah menyelesaikan inspeksi ini. Silakan review hasil di atas dan setujui untuk dipublikasikan, atau kembalikan jika ada kesalahan.</p>
               <div className="flex items-center gap-3">
                 <button 
+                  type="button"
                   onClick={() => handleSupervisorAction("APPROVE")}
                   disabled={saving}
                   className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2"
@@ -559,6 +560,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
                   <CheckCircle size={18} /> Setujui & Publikasikan
                 </button>
                 <button 
+                  type="button"
                   onClick={() => setShowRejectModal(true)}
                   disabled={saving}
                   className="bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2"
@@ -578,6 +580,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
               </div>
               {(userRole === "SUPER_ADMIN" || userRole === "ADMIN") && (
                 <button 
+                  type="button"
                   onClick={() => setShowRevokeModal(true)}
                   className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                 >
@@ -624,12 +627,14 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
             />
             <div className="flex items-center justify-end gap-3">
               <button 
+                type="button"
                 onClick={() => { setShowRejectModal(false); setRejectNote(""); }}
                 className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors"
               >
                 Batal
               </button>
               <button 
+                type="button"
                 onClick={() => handleSupervisorAction("REJECT", rejectNote)}
                 disabled={saving || !rejectNote.trim()}
                 className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
@@ -655,12 +660,14 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
             />
             <div className="flex items-center justify-end gap-3">
               <button 
+                type="button"
                 onClick={() => { setShowRevokeModal(false); setRevokeNote(""); }}
                 className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors"
               >
                 Batal
               </button>
               <button 
+                type="button"
                 onClick={() => handleSupervisorAction("REVOKE", revokeNote)}
                 disabled={saving || !revokeNote.trim()}
                 className="px-4 py-2 bg-amber-600 text-white hover:bg-amber-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
@@ -680,6 +687,7 @@ export default function SmartInspectionTabClient({ motorId, userRole = "GUEST", 
         >
           <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center">
             <button 
+              type="button"
               onClick={() => setZoomedImage(null)}
               className="absolute -top-10 right-0 text-white hover:text-gray-300 flex items-center gap-2 font-medium"
             >
